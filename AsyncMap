@@ -1,0 +1,23 @@
+
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
+
+public class AsyncMapExample {
+
+    public static void main(String[] args) {
+        Stream<Integer> input = Stream.of(1, 2, 3, 4, 5);
+
+        CompletableFuture<String>[] futures = input.map(i ->
+            CompletableFuture.supplyAsync(() -> {
+                // Perform some asynchronous processing here
+                return "Processed value: " + i;
+            })
+        ).toArray(CompletableFuture[]::new);
+
+        CompletableFuture.allOf(futures).join();
+
+        for (CompletableFuture<String> future : futures) {
+            System.out.println(future.join());
+        }
+    }
+}
