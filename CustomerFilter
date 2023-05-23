@@ -1,0 +1,45 @@
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class CustomerFilterExample {
+    public static void main(String[] args) {
+        List<Customer> customers = new ArrayList<>();
+        customers.add(new Customer("John Doe"));
+        customers.add(new Customer("Jane Smith"));
+        customers.add(new Customer("David Johnson"));
+        customers.add(new Customer("Mary Davis"));
+
+        String[] customerNames = {"John Doe", "David Johnson"};
+
+        List<Customer> filteredCustomers = customers.stream()
+                .filter(customer -> containsName(customer, customerNames))
+                .collect(Collectors.toList());
+
+        for (Customer customer : filteredCustomers) {
+            System.out.println(customer.getName());
+        }
+    }
+
+    private static boolean containsName(Customer customer, String[] names) {
+        for (String name : names) {
+            if (customer.getName().equals(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static class Customer {
+        private String name;
+
+        public Customer(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
+            return name;
+        }
+    }
+}
