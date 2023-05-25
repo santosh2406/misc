@@ -1,0 +1,139 @@
+import org.apache.commons.lang3.StringUtils;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class MiscStatusCd {
+
+    String COLON = ":";
+    String ASTERISK = "*";
+    String HYPHEN = "-";
+    String EHCACHE_CARD_STATUS_CODES = "ehcache:CardStatusCodes";
+
+    String CACHE_KEY_CARD_STATUS_CODE = "CardStatusCodes";
+    String TSYS_CARD_STATUS_CODES = "TSYS_CARD_STATUS_CODES";
+    String GET_CARD_STATUS_CODE_DESC = "getCardStatusCodeDesc";
+    public void populateCardStatus(Statuses statuses, Object options){
+
+        Map<String, List<Code>> cardStatusesMap = getCardStatusCode(options);
+
+        List<Code> matchedCodes = new ArrayList<>();
+        for (Status hostStatus : statuses.getStatuses()) {
+            String statusCode = hostStatus.getStatusCode(); // CL
+            String reasonCode = hostStatus.getReasonCode(); // V or VC or BP or DC , reason code max length is 2
+
+            if (StringUtils.isBlank(statusCode) || StringUtils.isBlank(reasonCode)) continue;
+
+            List<Code> valuesByStatusCode = cardStatusesMap.get(statusCode);
+
+            if (valuesByStatusCode != null) {
+                String statusCodeAsterisk = statusCode + COLON + ASTERISK;
+
+                List<String> matchStrings = new ArrayList<>();
+                matchStrings.add(statusCode + COLON + reasonCode); // CL-VC or CL-BP or CL-V or CL-DC
+                matchStrings.add(statusCodeAsterisk); // CL-*
+
+                if (valuesByStatusCode.size() == 1) {
+                    Code c = valuesByStatusCode.get(0);
+                    if (matchStrings.contains(c.getName())) {
+                        matchedCodes.add(c);
+                    }
+                } else {
+                    if (reasonCode.length() == 2) {
+                        matchStrings.add(statusCode + COLON + reasonCode.charAt(0) + ASTERISK); // CL-V*
+                    }
+
+                    List<Code> temp = new ArrayList<>();
+                    for (Code c : valuesByStatusCode) {
+                        if (c == null || c.getName() == null || c.getValue() == null) continue;
+
+                        // When there is a StatusCode:ReasonCode-commaSeparatedExcludesList
+                        if (c.getName().contains(HYPHEN) && c.getName().contains(ASTERISK)) { // CL:*-DC,SC
+                            String[] reasonCodeWithExcludes = c.getName().split(HYPHEN);
+                            if (reasonCodeWithExcludes.length == 2) {
+                                String[] excludeReasonCodesFromAsterisk = reasonCodeWithExcludes[1].split(COMMA);
+                                boolean removedAsteriskMatch = false;
+                                for (String exclude : excludeReasonCodesFromAsterisk) {
+                                    if (!removedAsteriskMatch && reasonCode.equals(exclude)) {
+                                        removedAsteriskMatch = matchStrings.remove(statusCodeAsterisk);
+                                    }
+                                }
+                            }
+                        }
+
+                        if (matchStrings.contains(c.getName())) {
+                            temp.add(c);
+                        }
+                    }
+
+                    // once we found all matching codes for a single host status, sort by priority and take the 1st code
+                    if (temp.size() > 0) {
+                        temp.sort(Comparator.comparing(Code::getCodeOrder));
+                        matchedCodes.add(temp.get(0));
+                    }
+                }
+            }
+        }
+
+        matchedCodes.sort(Comparator.comparing(Code::getCodeOrder));
+
+        /*for (Code code : matchedCodes) {
+            //TODO:Need to create multiple instance of CardStatusType in CardRecType to sync with host response.
+            CardStatusType cardStatus = new CardStatusType();
+            cardStatus.setStatusDesc(code.getValue());
+            cardRec.setCardStatus(cardStatus);
+        }*/
+    }
+    public Map<String, List<Code>> getCardStatusCode(Object options) {
+        log.begin(GET_CARD_STATUS_CODE_DESC);
+        Map<String, List<Code>> cardStatusCodesMap = null;
+        try {
+            CacheService cacheSvc = factory.getService(CacheService.class);
+            Reference referenceSvc = factory.getService(Reference.class);
+            if (cacheSvc != null) {
+                cardStatusCodesMap = (Map<String, List<Code>>) cacheSvc.get(EHCACHE_CARD_STATUS_CODES, CACHE_KEY_CARD_STATUS_CODE);
+            } else {
+                log.error(TSYS, "Cache Service is null");
+            }
+
+            if (referenceSvc != null) {
+                if (cardStatusCodesMap == null || cardStatusCodesMap.size() == 0) {
+                    CodeCategory category = new CodeCategory();
+                    category.setName(TSYS_CARD_STATUS_CODES);
+                    List<Code> codes= referenceSvc.getCodes(category, options.getLanguage(), com.mschematic.platform.common.entity.Status.Active, options);
+                    if (cacheSvc != null && codes != null) {
+                        codes.sort(Comparator.comparing(Code::getCodeOrder));
+                        cardStatusCodesMap = new HashMap<>();
+
+                        for (Code c : codes) {
+                            if (c == null || c.getName() == null || c.getValue() == null) continue;
+
+                            String statusCode = c.getName().split(COLON)[0];
+                            List<Code> temp = null;
+                            if (cardStatusCodesMap.size() == 0) {
+                                temp = new ArrayList<>();
+                                cardStatusCodesMap.put(statusCode, temp);
+                            } else {
+                                temp = cardStatusCodesMap.computeIfAbsent(statusCode, k -> new ArrayList<>());
+                            }
+                            temp.add(c);
+                        }
+
+                        cacheSvc.put(EHCACHE_CARD_STATUS_CODES, CACHE_KEY_CARD_STATUS_CODE, cardStatusCodesMap);
+                    }
+                }
+            } else {
+                log.error(TSYS, "Reference Service is null");
+            }
+
+        } catch (Exception ex) {
+            log.error(SystemOfRecord.Database, ex);
+        }
+        log.end(GET_CARD_STATUS_CODE_DESC);
+
+        return cardStatusCodesMap;
+    }
+}
