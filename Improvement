@@ -1,0 +1,94 @@
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+public class MiscStatusCd {
+    private static final String COLON = ":";
+    private static final String ASTERISK = "*";
+    private static final String HYPHEN = "-";
+    private static final String EHCACHE_CARD_STATUS_CODES = "ehcache:CardStatusCodes";
+    private static final String CACHE_KEY_CARD_STATUS_CODE = "CardStatusCodes";
+    private static final String TSYS_CARD_STATUS_CODES = "TSYS_CARD_STATUS_CODES";
+    private static final String GET_CARD_STATUS_CODE_DESC = "getCardStatusCodeDesc";
+
+    public void populateCardStatus(Statuses statuses, Object options) {
+        Map<String, Map<String, Code>> cardStatusesMap = getCardStatusCode(options);
+
+        List<Code> matchedCodes = new ArrayList<>();
+        for (Status hostStatus : statuses.getStatuses()) {
+            String statusCode = hostStatus.getStatusCode();
+            String reasonCode = hostStatus.getReasonCode();
+
+            if (StringUtils.isBlank(statusCode) || StringUtils.isBlank(reasonCode)) {
+                continue;
+            }
+
+            Map<String, Code> statusCodes = cardStatusesMap.get(statusCode);
+            if (statusCodes != null) {
+                Optional<Code> matchedCode = Optional.ofNullable(statusCodes.get(statusCode + COLON + reasonCode));
+                if (!matchedCode.isPresent()) {
+                    matchedCode = Optional.ofNullable(statusCodes.get(statusCode + COLON + ASTERISK));
+                }
+                if (!matchedCode.isPresent() && reasonCode.length() == 2) {
+                    matchedCode = Optional.ofNullable(statusCodes.get(statusCode + COLON + reasonCode.charAt(0) + ASTERISK));
+                }
+                matchedCode.ifPresent(matchedCodes::add);
+            }
+        }
+
+        matchedCodes.sort(Comparator.comparing(Code::getCodeOrder));
+
+        // Rest of the code...
+    }
+
+    public Map<String, Map<String, Code>> getCardStatusCode(Object options) {
+        log.begin(GET_CARD_STATUS_CODE_DESC);
+        Map<String, Map<String, Code>> cardStatusCodesMap = null;
+        try {
+            CacheService cacheSvc = factory.getService(CacheService.class);
+            Reference referenceSvc = factory.getService(Reference.class);
+
+            if (cacheSvc == null) {
+                log.error(TSYS, "Cache Service is null");
+                return cardStatusCodesMap;
+            }
+
+            cardStatusCodesMap = cacheSvc.get(EHCACHE_CARD_STATUS_CODES, CACHE_KEY_CARD_STATUS_CODE);
+
+            if (cardStatusCodesMap == null || cardStatusCodesMap.isEmpty()) {
+                if (referenceSvc == null) {
+                    log.error(TSYS, "Reference Service is null");
+                    return cardStatusCodesMap;
+                }
+
+                CodeCategory category = new CodeCategory();
+                category.setName(TSYS_CARD_STATUS_CODES);
+                List<Code> codes = referenceSvc.getCodes(category, options.getLanguage(), com.mschematic.platform.common.entity.Status.Active, options);
+                if (codes != null && !codes.isEmpty()) {
+                    cardStatusCodesMap = new HashMap<>();
+
+                    for (Code code : codes) {
+                        if (code == null || code.getName() == null || code.getValue() == null) {
+                            continue;
+                        }
+
+                        String statusCode = code.getName().split(COLON)[0];
+                        Map<String, Code> statusCodes = cardStatusCodesMap.computeIfAbsent(statusCode, k -> new HashMap<>());
+                        statusCodes.put(code.getName(), code);
+                    }
+
+                    cacheSvc.put(EHCACHE_CARD_STATUS_CODES, CACHE_KEY_CARD_STATUS_CODE, cardStatusCodesMap);
+                }
+            }
+        } catch (Exception ex) {
+            log.error(SystemOfRecord.Database, ex);
+        }
+        log.end(GET_CARD_STATUS_CODE_DESC);
+
+        return cardStatusCodesMap;
+    }
+}
