@@ -5,41 +5,50 @@ import com.mschematic.logging.LogFactory;
 import com.mschematic.service.ServiceException;
 
 import com.mschematic.util.Messages;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CardMaintenanceTsysValidator implements TSYSConstants{
+public class CardMaintenanceTsysValidator implements TSYSConstants {
     private static final Messages messages = Messages.getMessages(CardMaintenanceTsysValidator.class);
     private static final Log log = LogFactory.getLog(CardMaintenanceTsysValidator.class);
 
     private Map<String, Object> fields;
 
-    public CardMaintenanceTsysValidator(){
+    public CardMaintenanceTsysValidator() {
         this.fields = new HashMap<>();
     }
-    public  CardMaintenanceTsysValidator validateRequest(String fieldName, Object value){
-        this.fields.put(fieldName,value);
+
+    public CardMaintenanceTsysValidator validateRequest(String fieldName, Object value) {
+        this.fields.put(fieldName, value);
         return this;
     }
-    private List getMissingFields(Map<String, Object> fieldsAndValues){
+
+    private List<String> getMissingFields(Map<String, Object> fieldsAndValues) {
         List<String> missingFields = new ArrayList<>();
-        for(Map.Entry<String, Object> fieldValue: fieldsAndValues.entrySet()){
+        for (Map.Entry<String, Object> fieldValue : fieldsAndValues.entrySet()) {
             Object object = fieldValue.getValue();
-            if(object== null || (object instanceof String && ((String)object).isEmpty())){
+            if (object == null || (object instanceof String && ((String) object).isEmpty())) {
                 missingFields.add(fieldValue.getKey());
             }
         }
         return missingFields;
     }
-    public void doValidate()throws ServiceException{
-        List missingFields = getMissingFields(fields);
+
+    public void doValidate() throws ServiceException {
+        List<String> missingFields = getMissingFields(fields);
         if (!missingFields.isEmpty()) {
-            String msg = messages.getString(TSYS_400, String.join(COMMA, missingFields));
+            StringBuilder stringBuilder = new StringBuilder();
+            for (String field : missingFields) {
+                stringBuilder.append(field).append(COMMA);
+            }
+            stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+
+            String msg = messages.getString(TSYS_400, stringBuilder.toString());
             log.error(TSYS, TSYSConstants.CARD_MOD, msg);
             throw new ServiceException(msg, HTTP_400);
         }
     }
-
 }
