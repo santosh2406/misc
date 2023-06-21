@@ -1,45 +1,37 @@
+public  Token getToken(Boolean reloadToken) throws ServiceException, IOException, JAXBException, GeneralSecurityException {
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
-public class CustomerFilterExample {
-    public static void main(String[] args) {
-        List<Customer> customers = new ArrayList<>();
-        customers.add(new Customer("John Doe"));
-        customers.add(new Customer("Jane Smith"));
-        customers.add(new Customer("David Johnson"));
-        customers.add(new Customer("Mary Davis"));
-
-        String[] customerNames = {"John Doe", "David Johnson"};
-
-        List<Customer> filteredCustomers = customers.stream()
-                .filter(customer -> containsName(customer, customerNames))
-                .collect(Collectors.toList());
-
-        for (Customer customer : filteredCustomers) {
-            System.out.println(customer.getName());
-        }
-    }
-
-    private static boolean containsName(Customer customer, String[] names) {
-        for (String name : names) {
-            if (customer.getName().equals(name)) {
-                return true;
+        Token token = null;
+        try {
+            CacheService cacheSvc = factory.getService(CacheService.class);
+            if (reloadToken) {
+                log.debug(GET_TOKEN, "About to generate fresh token (reloadToken)");
+                token = getToken(Token.class);
+                log.info(GET_TOKEN, "New Token (reloadToken) generation Complete : ");
+                log.debug(GET_TOKEN, "Fresh Token (reloadToken) Generated : ");
+                if (token != null) {
+                    cacheSvc.put("ehcache:" + TOKEN_OBJECT, TOKEN_OBJECT, token);
+                    log.info(GET_TOKEN, "Token (reloadToken) Caching Complete : ");
+                }
+            }else{
+                if (cacheSvc != null) {
+                    token = (Token) cacheSvc.get("ehcache:" + _TOKEN_OBJECT, _TOKEN_OBJECT);
+                    if (token == null) {
+                        log.debug(GET_TOKEN, "About to generate fresh token : ");
+                        token = getToken(Token.class);
+                        log.info(GET_TOKEN, "New Token generation Complete : ");
+                        log.debug(GET_TOKEN, "Fresh Token Generated : ");
+                        if (token != null) {
+                            cacheSvc.put("ehcache:" + _TOKEN_OBJECT, _TOKEN_OBJECT, token);
+                            log.info(GET_TOKEN, "Token Caching Complete : ");
+                        }
+                    } else {
+                        log.debug(GET_TOKEN, "Token Obtained from Cache : ");
+                    }
+                }
             }
+        }catch(ServiceException se){
+            log.debug(GET_TOKEN, "Failing to retrieve cached token due to:", se);
+            token = getToken(Token.class);
         }
-        return false;
+        return token;
     }
-
-    static class Customer {
-        private String name;
-
-        public Customer(String name) {
-            this.name = name;
-        }
-
-        public String getName() {
-            return name;
-        }
-    }
-}
