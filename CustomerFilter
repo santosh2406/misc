@@ -1,37 +1,102 @@
-public  Token getToken(Boolean reloadToken) throws ServiceException, IOException, JAXBException, GeneralSecurityException {
+private static final Object tokenLock = new Object(); // Lock object for thread safety
 
-        Token token = null;
-        try {
-            CacheService cacheSvc = factory.getService(CacheService.class);
-            if (reloadToken) {
-                log.debug(GET_TOKEN, "About to generate fresh token (reloadToken)");
-                token = getToken(Token.class);
-                log.info(GET_TOKEN, "New Token (reloadToken) generation Complete : ");
-                log.debug(GET_TOKEN, "Fresh Token (reloadToken) Generated : ");
-                if (token != null) {
-                    cacheSvc.put("ehcache:" + TOKEN_OBJECT, TOKEN_OBJECT, token);
-                    log.info(GET_TOKEN, "Token (reloadToken) Caching Complete : ");
-                }
-            }else{
-                if (cacheSvc != null) {
-                    token = (Token) cacheSvc.get("ehcache:" + _TOKEN_OBJECT, _TOKEN_OBJECT);
-                    if (token == null) {
-                        log.debug(GET_TOKEN, "About to generate fresh token : ");
-                        token = getToken(Token.class);
-                        log.info(GET_TOKEN, "New Token generation Complete : ");
-                        log.debug(GET_TOKEN, "Fresh Token Generated : ");
-                        if (token != null) {
-                            cacheSvc.put("ehcache:" + _TOKEN_OBJECT, _TOKEN_OBJECT, token);
-                            log.info(GET_TOKEN, "Token Caching Complete : ");
-                        }
-                    } else {
-                        log.debug(GET_TOKEN, "Token Obtained from Cache : ");
+private Token cachedToken = null; // Cached token instance
+
+public Token getToken(Boolean reloadToken) throws ServiceException, IOException, JAXBException, GeneralSecurityException {
+    if (!reloadToken) {
+        // Check if token is already cached
+        if (cachedToken != null) {
+            return cachedToken;
+        }
+    }
+
+    // If token needs to be reloaded or not found in cache, generate a new token
+    Token newToken = generateToken();
+
+    // Update the cache and return the new token
+    synchronized (tokenLock) {
+        cachedToken = newToken;
+    }
+    return newToken;
+}
+
+private Token generateToken() throws ServiceException, IOException, JAXBException, GeneralSecurityException {
+    Token newToken = null;
+    try {
+        CacheService cacheSvc = factory.getService(CacheService.class);
+
+        // Attempt to retrieve token from cache
+        if (cacheSvc != null) {
+            newToken = (Token) cacheSvc.get("ehcache:" + _TOKEN_OBJECT, _TOKEN_OBJECT);
+        }
+
+        if (newToken == null) {
+            // Generate a fresh token
+            log.debug(GET_TOKEN, "About to generate fresh token : ");
+            newToken = getToken(Token.class);
+            log.info(GET_TOKEN, "New Token generation Complete : ");
+            log.debug(GET_TOKEN, "Fresh Token Generated : ");
+
+            if (newToken != null && cacheSvc != null) {
+                // Update cache with the new token
+                cacheSvc.put("ehcache:" + _TOKEN_OBJECT, _TOKEN_OBJECT, newToken);
+                log.info(GET_TOKEN, "Token Caching Complete : ");
+            }
+        } else {
+            log.debug(GET_TOKEN, "Token Obtained from Cache : ");
+        }
+    } catch (ServiceException se) {
+        log.debug(GET_TOKEN, "Failing to retrieve cached token due to:", se);
+        newToken = getToken(Token.class);
+    }
+
+    return newToken;
+}
+______________
+import java.util.concurrent.*;
+
+public Token getToken(Boolean reloadToken) throws ServiceException, IOException, JAXBException, GeneralSecurityException {
+    Token token = null;
+    ExecutorService executor = Executors.newFixedThreadPool(2); // Number of threads to use
+
+    try {
+        CacheService cacheSvc = factory.getService(CacheService.class);
+        if (reloadToken) {
+            log.debug(GET_TOKEN, "About to generate fresh token (reloadToken)");
+            token = getTokenAsync(Token.class, executor).get(); // Wait for token generation to complete
+            log.info(GET_TOKEN, "New Token (reloadToken) generation Complete : ");
+            log.debug(GET_TOKEN, "Fresh Token (reloadToken) Generated : ");
+            if (token != null) {
+                cacheSvc.put("ehcache:" + TOKEN_OBJECT, TOKEN_OBJECT, token);
+                log.info(GET_TOKEN, "Token (reloadToken) Caching Complete : ");
+            }
+        } else {
+            if (cacheSvc != null) {
+                token = (Token) cacheSvc.get("ehcache:" + _TOKEN_OBJECT, _TOKEN_OBJECT);
+                if (token == null) {
+                    log.debug(GET_TOKEN, "About to generate fresh token : ");
+                    token = getTokenAsync(Token.class, executor).get(); // Wait for token generation to complete
+                    log.info(GET_TOKEN, "New Token generation Complete : ");
+                    log.debug(GET_TOKEN, "Fresh Token Generated : ");
+                    if (token != null) {
+                        cacheSvc.put("ehcache:" + _TOKEN_OBJECT, _TOKEN_OBJECT, token);
+                        log.info(GET_TOKEN, "Token Caching Complete : ");
                     }
+                } else {
+                    log.debug(GET_TOKEN, "Token Obtained from Cache : ");
                 }
             }
-        }catch(ServiceException se){
-            log.debug(GET_TOKEN, "Failing to retrieve cached token due to:", se);
-            token = getToken(Token.class);
         }
-        return token;
+    } catch (ServiceException se) {
+        log.debug(GET_TOKEN, "Failing to retrieve cached token due to:", se);
+        token = getTokenAsync(Token.class, executor).get(); // Wait for token generation to complete
+    } finally {
+        executor.shutdown(); // Shut down the executor
     }
+
+    return token;
+}
+
+private <T> Future<T> getTokenAsync(Class<T> tokenClass, ExecutorService executor) {
+    return executor.submit(() -> getToken(tokenClass));
+}
