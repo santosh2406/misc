@@ -1,23 +1,37 @@
+// Define a thread-safe cache instance as a member variable
+private CacheService cacheSvc = factory.getService(CacheService.class);
+private final Object lock = new Object();
 
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Stream;
+public Token getToken(Boolean reloadToken) throws ServiceException, IOException, JAXBException, GeneralSecurityException {
+    Token token = null;
+    String cacheKey = "ehcache:" + TOKEN_OBJECT;
 
-public class AsyncMapExample {
+    if (reloadToken || cacheSvc == null) {
+        // Generate a fresh token and update the cache
+        token = generateToken();
+        cacheToken(cacheKey, token);
+    } else {
+        synchronized (lock) {
+            // Try to retrieve the token from the cache
+            token = (Token) cacheSvc.get(cacheKey, TOKEN_OBJECT);
 
-    public static void main(String[] args) {
-        Stream<Integer> input = Stream.of(1, 2, 3, 4, 5);
-
-        CompletableFuture<String>[] futures = input.map(i ->
-            CompletableFuture.supplyAsync(() -> {
-                // Perform some asynchronous processing here
-                return "Processed value: " + i;
-            })
-        ).toArray(CompletableFuture[]::new);
-
-        CompletableFuture.allOf(futures).join();
-
-        for (CompletableFuture<String> future : futures) {
-            System.out.println(future.join());
+            if (token == null) {
+                // Generate a fresh token and update the cache
+                token = generateToken();
+                cacheToken(cacheKey, token);
+            }
         }
+    }
+
+    return token;
+}
+
+private Token generateToken() throws ServiceException, IOException, JAXBException, GeneralSecurityException {
+    // Logic to generate a new token
+}
+
+private void cacheToken(String cacheKey, Token token) {
+    if (cacheSvc != null && token != null) {
+        cacheSvc.put(cacheKey, TOKEN_OBJECT, token);
     }
 }
