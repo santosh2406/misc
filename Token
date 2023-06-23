@@ -1,0 +1,59 @@
+public class TokenManager {
+    private static TokenManager instance;
+    private Token cachedToken;
+    private Object lock = new Object();
+
+    private TokenManager() {
+        // Private constructor to prevent instantiation from outside the class
+    }
+
+    public static TokenManager getInstance() {
+        if (instance == null) {
+            synchronized (TokenManager.class) {
+                if (instance == null) {
+                    instance = new TokenManager();
+                }
+            }
+        }
+        return instance;
+    }
+
+    public Token getToken(Boolean reloadToken) throws ServiceException, IOException, JAXBException, GeneralSecurityException {
+        if (!reloadToken && cachedToken != null) {
+            return cachedToken;
+        }
+
+        synchronized (lock) {
+            if (!reloadToken && cachedToken != null) {
+                return cachedToken;
+            }
+
+            Token freshToken = null;
+            try {
+                CacheService cacheSvc = factory.getService(CacheService.class);
+                if (cacheSvc != null) {
+                    freshToken = (Token) cacheSvc.get("ehcache:" + TOKEN_OBJECT, TOKEN_OBJECT);
+                }
+
+                if (freshToken == null) {
+                    log.debug(GET_TOKEN, "About to generate fresh token" + (reloadToken ? " (reloadToken)" : ""));
+                    freshToken = getToken(Token.class);
+                    log.info(GET_TOKEN, "New Token" + (reloadToken ? " (reloadToken)" : "") + " generation Complete");
+                    log.debug(GET_TOKEN, "Fresh Token" + (reloadToken ? " (reloadToken)" : "") + " Generated");
+                    if (freshToken != null && cacheSvc != null) {
+                        cacheSvc.put("ehcache:" + TOKEN_OBJECT, TOKEN_OBJECT, freshToken);
+                        log.info(GET_TOKEN, "Token" + (reloadToken ? " (reloadToken)" : "") + " Caching Complete");
+                    }
+                } else {
+                    log.debug(GET_TOKEN, "Token Obtained from Cache");
+                }
+            } catch (ServiceException se) {
+                log.debug(GET_TOKEN, "Failing to retrieve cached token due to:", se);
+                freshToken = getToken(Token.class);
+            }
+
+            cachedToken = freshToken;
+            return freshToken;
+        }
+    }
+}
