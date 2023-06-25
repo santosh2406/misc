@@ -1,37 +1,118 @@
-// Define a thread-safe cache instance as a member variable
-private CacheService cacheSvc = factory.getService(CacheService.class);
-private final Object lock = new Object();
+import java.time.Duration;
+import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
-public Token getToken(Boolean reloadToken) throws ServiceException, IOException, JAXBException, GeneralSecurityException {
-    Token token = null;
-    String cacheKey = "ehcache:" + TOKEN_OBJECT;
+public class TokenManager {
+    private final TokenProvider tokenProvider;
+    private Token token;
+    private final Executor executor;
 
-    if (reloadToken || cacheSvc == null) {
-        // Generate a fresh token and update the cache
-        token = generateToken();
-        cacheToken(cacheKey, token);
-    } else {
-        synchronized (lock) {
-            // Try to retrieve the token from the cache
-            token = (Token) cacheSvc.get(cacheKey, TOKEN_OBJECT);
+    public TokenManager(TokenProvider tokenProvider) {
+        this.tokenProvider = tokenProvider;
+        this.token = null;
+        this.executor = Executors.newSingleThreadExecutor();
+    }
 
-            if (token == null) {
-                // Generate a fresh token and update the cache
-                token = generateToken();
-                cacheToken(cacheKey, token);
-            }
+    public CompletableFuture<Token> getToken() {
+        if (token != null && !token.isExpired()) {
+            return CompletableFuture.completedFuture(token);
+        } else {
+            return refreshToken();
         }
     }
 
-    return token;
-}
+    private synchronized CompletableFuture<Token> refreshToken() {
+        // Check token again in case it was refreshed by another thread
+        if (token != null && !token.isExpired()) {
+            return CompletableFuture.completedFuture(token);
+        }
 
-private Token generateToken() throws ServiceException, IOException, JAXBException, GeneralSecurityException {
-    // Logic to generate a new token
-}
+        // If token is expired or null, refresh it
+        CompletableFuture<Token> future = new CompletableFuture<>();
+        tokenProvider.getTokenAsync().thenAccept(newToken -> {
+            token = newToken;
+            future.complete(token);
+        });
+        return future;
+    }
 
-private void cacheToken(String cacheKey, Token token) {
-    if (cacheSvc != null && token != null) {
-        cacheSvc.put(cacheKey, TOKEN_OBJECT, token);
+    private void scheduleTokenRefresh(Duration duration) {
+        Instant refreshTime = Instant.now().plus(duration);
+        CompletableFuture.delayedExecutor(duration.toSeconds(), Executors.newSingleThreadExecutor()).execute(() -> {
+            refreshToken().thenRun(() -> scheduleTokenRefresh(token.getExpirationTime().minus(Instant.now())));
+        });
+    }
+}
+______________________________________
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+
+public class TokenManager {
+    private final TokenProvider tokenProvider;
+    private final Map<String, Token> tokenCache;
+    private final Map<String, CompletableFuture<Token>> refreshTasks;
+    private final Executor executor;
+
+    public TokenManager(TokenProvider tokenProvider) {
+        this.tokenProvider = tokenProvider;
+        this.tokenCache = new ConcurrentHashMap<>();
+        this.refreshTasks = new ConcurrentHashMap<>();
+        this.executor = Executors.newSingleThreadExecutor();
+    }
+
+    public CompletableFuture<Token> getToken(String targetSystem) {
+        Token token = tokenCache.get(targetSystem);
+        if (token != null && !token.isExpired()) {
+            return CompletableFuture.completedFuture(token);
+        } else {
+            return refreshToken(targetSystem);
+        }
+    }
+
+    public void invalidateToken(String targetSystem) {
+        tokenCache.remove(targetSystem);
+    }
+
+    public void invalidateAllTokens() {
+        tokenCache.clear();
+    }
+
+    private CompletableFuture<Token> refreshToken(String targetSystem) {
+        CompletableFuture<Token> future = refreshTasks.get(targetSystem);
+        if (future != null) {
+            return future; // Return the ongoing refresh task
+        }
+
+        future = new CompletableFuture<>();
+        refreshTasks.put(targetSystem, future);
+
+        tokenProvider.getTokenAsync(targetSystem).thenAccept(newToken -> {
+            tokenCache.put(targetSystem, newToken);
+            future.complete(newToken);
+            scheduleTokenRefresh(targetSystem, newToken.getExpirationTime());
+        }).whenComplete((result, error) -> {
+            refreshTasks.remove(targetSystem, future);
+        });
+
+        return future;
+    }
+
+    private void scheduleTokenRefresh(String targetSystem, Instant expirationTime) {
+        Duration duration = Duration.between(Instant.now(), expirationTime);
+        CompletableFuture.delayedExecutor(duration.toSeconds(), Executors.newSingleThreadExecutor()).execute(() -> {
+            refreshToken(targetSystem);
+        });
+    }
+
+    public void evictExpiredTokens() {
+        Instant now = Instant.now();
+        tokenCache.entrySet().removeIf(entry -> entry.getValue().isExpired(now));
     }
 }
