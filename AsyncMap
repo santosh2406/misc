@@ -1,118 +1,95 @@
-import java.time.Duration;
-import java.time.Instant;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+public class Token {
+    private String value;
+    private long expirationTimeMillis;
 
-public class TokenManager {
-    private final TokenProvider tokenProvider;
-    private Token token;
-    private final Executor executor;
-
-    public TokenManager(TokenProvider tokenProvider) {
-        this.tokenProvider = tokenProvider;
-        this.token = null;
-        this.executor = Executors.newSingleThreadExecutor();
+    public Token(String value, long expirationTimeMillis) {
+        this.value = value;
+        this.expirationTimeMillis = expirationTimeMillis;
     }
 
-    public CompletableFuture<Token> getToken() {
-        if (token != null && !token.isExpired()) {
-            return CompletableFuture.completedFuture(token);
-        } else {
-            return refreshToken();
-        }
+    public String getValue() {
+        return value;
     }
 
-    private synchronized CompletableFuture<Token> refreshToken() {
-        // Check token again in case it was refreshed by another thread
-        if (token != null && !token.isExpired()) {
-            return CompletableFuture.completedFuture(token);
-        }
-
-        // If token is expired or null, refresh it
-        CompletableFuture<Token> future = new CompletableFuture<>();
-        tokenProvider.getTokenAsync().thenAccept(newToken -> {
-            token = newToken;
-            future.complete(token);
-        });
-        return future;
-    }
-
-    private void scheduleTokenRefresh(Duration duration) {
-        Instant refreshTime = Instant.now().plus(duration);
-        CompletableFuture.delayedExecutor(duration.toSeconds(), Executors.newSingleThreadExecutor()).execute(() -> {
-            refreshToken().thenRun(() -> scheduleTokenRefresh(token.getExpirationTime().minus(Instant.now())));
-        });
+    public boolean isExpired() {
+        return System.currentTimeMillis() > expirationTimeMillis;
     }
 }
-______________________________________
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+Create a TokenManager class responsible for fetching, refreshing, and managing tokens for multiple hosts:
+java
+Copy code
+import org.ehcache.Cache;
+import org.ehcache.CacheManager;
+import org.ehcache.CacheManagerBuilder;
+import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.Configuration;
+import org.ehcache.config.builders.CacheConfigurationBuilder.NewCacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ConfigurationBuilder;
 
 public class TokenManager {
-    private final TokenProvider tokenProvider;
-    private final Map<String, Token> tokenCache;
-    private final Map<String, CompletableFuture<Token>> refreshTasks;
-    private final Executor executor;
+    private static final long THRESHOLD_MILLIS = 60000; // One minute threshold
 
-    public TokenManager(TokenProvider tokenProvider) {
-        this.tokenProvider = tokenProvider;
-        this.tokenCache = new ConcurrentHashMap<>();
-        this.refreshTasks = new ConcurrentHashMap<>();
-        this.executor = Executors.newSingleThreadExecutor();
+    private Cache<String, Token> tokenCache;
+
+    public TokenManager() {
+        Configuration configuration = ConfigurationBuilder.newConfigurationBuilder().build();
+        CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
+        cacheManager.init();
+
+        NewCacheConfigurationBuilder<String, Token> cacheConfiguration = CacheConfigurationBuilder
+                .newCacheConfigurationBuilder(String.class, Token.class, null)
+                .withExpiry(new CustomExpiry());
+
+        tokenCache = cacheManager.createCache("tokenCache", cacheConfiguration);
     }
 
-    public CompletableFuture<Token> getToken(String targetSystem) {
-        Token token = tokenCache.get(targetSystem);
-        if (token != null && !token.isExpired()) {
-            return CompletableFuture.completedFuture(token);
-        } else {
-            return refreshToken(targetSystem);
+    public Token getToken(String host) {
+        Token token = tokenCache.get(host);
+        if (token == null || token.isExpired()) {
+            token = fetchTokenFromServer(host); // Implement this method to fetch token from the server
+            tokenCache.put(host, token);
         }
+        return token;
     }
 
-    public void invalidateToken(String targetSystem) {
-        tokenCache.remove(targetSystem);
-    }
-
-    public void invalidateAllTokens() {
-        tokenCache.clear();
-    }
-
-    private CompletableFuture<Token> refreshToken(String targetSystem) {
-        CompletableFuture<Token> future = refreshTasks.get(targetSystem);
-        if (future != null) {
-            return future; // Return the ongoing refresh task
+    private class CustomExpiry implements Expiry<String, Token> {
+        @Override
+        public Duration getExpiryForCreation(String key, Token value) {
+            return Duration.ofMillis(value.getExpirationTimeMillis() - System.currentTimeMillis());
         }
 
-        future = new CompletableFuture<>();
-        refreshTasks.put(targetSystem, future);
+        @Override
+        public Duration getExpiryForAccess(String key, Supplier<? extends Token> value) {
+            return null;
+        }
 
-        tokenProvider.getTokenAsync(targetSystem).thenAccept(newToken -> {
-            tokenCache.put(targetSystem, newToken);
-            future.complete(newToken);
-            scheduleTokenRefresh(targetSystem, newToken.getExpirationTime());
-        }).whenComplete((result, error) -> {
-            refreshTasks.remove(targetSystem, future);
-        });
-
-        return future;
-    }
-
-    private void scheduleTokenRefresh(String targetSystem, Instant expirationTime) {
-        Duration duration = Duration.between(Instant.now(), expirationTime);
-        CompletableFuture.delayedExecutor(duration.toSeconds(), Executors.newSingleThreadExecutor()).execute(() -> {
-            refreshToken(targetSystem);
-        });
-    }
-
-    public void evictExpiredTokens() {
-        Instant now = Instant.now();
-        tokenCache.entrySet().removeIf(entry -> entry.getValue().isExpired(now));
+        @Override
+        public Duration getExpiryForUpdate(String key, Supplier<? extends Token> oldValue, Token newValue) {
+            return null;
+        }
     }
 }
+In your application, you can use the TokenManager to get the token for a specific host:
+java
+Copy code
+public class Main {
+    public static void main(String[] args) {
+        TokenManager tokenManager = new TokenManager();
+
+        String host1 = "https://example-host1.com";
+        String host2 = "https://example-host2.com";
+
+        Token token1 = tokenManager.getToken(host1);
+        Token token2 = tokenManager.getToken(host2);
+
+        System.out.println("Token for host1: " + token1.getValue());
+        System.out.println("Token for host2: " + token2.getValue());
+    }
+}
+Remember that in this example, I've used a simple threshold of one minute (60000 milliseconds) to check if the token is close to expiration. You can adjust the threshold according to your specific requirements. Additionally, the fetchTokenFromServer method needs to be implemented to fetch the token from the authentication server for a given host.
+
+
+
+
+
