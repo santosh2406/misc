@@ -1,95 +1,233 @@
-public class Token {
-    private String value;
-    private long expirationTimeMillis;
+import com.mschematic.logging.Log;
+import com.mschematic.logging.LogFactory;
+import com.mschematic.rest.RestConnection;
+import com.mschematic.rest.RestRequest;
+import com.mschematic.rest.json.JSONContext;
+import com.mschematic.service.ServiceException;
+import com.mschematic.service.cache.CacheService;
+import com.mschematic.svcfactory.ServiceFactory;
+import com.mschematic.tsys.adapter.TSYSConstants;
+import com.mschematic.tsys.adapter.model.Pair;
+import com.mschematic.tsys.adapter.model.Token;
+import com.mschematic.util.Messages;
+import org.apache.commons.lang3.StringUtils;
 
-    public Token(String value, long expirationTimeMillis) {
-        this.value = value;
-        this.expirationTimeMillis = expirationTimeMillis;
-    }
+import javax.annotation.Resource;
+import javax.xml.bind.JAXBException;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.Proxy;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.text.MessageFormat;
+import java.util.Base64;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
-    public String getValue() {
-        return value;
-    }
-
-    public boolean isExpired() {
-        return System.currentTimeMillis() > expirationTimeMillis;
-    }
-}
-Create a TokenManager class responsible for fetching, refreshing, and managing tokens for multiple hosts:
-java
-Copy code
-import org.ehcache.Cache;
-import org.ehcache.CacheManager;
-import org.ehcache.CacheManagerBuilder;
-import org.ehcache.config.CacheConfigurationBuilder;
-import org.ehcache.config.Configuration;
-import org.ehcache.config.builders.CacheConfigurationBuilder.NewCacheConfigurationBuilder;
-import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.builders.ConfigurationBuilder;
-
-public class TokenManager {
+public class TokenGeneratorAdapter implements TSYSConstants {
     private static final long THRESHOLD_MILLIS = 60000; // One minute threshold
 
-    private Cache<String, Token> tokenCache;
+    private static final Log log = LogFactory.getLog(TokenGeneratorAdapter.class);
+    private static final Messages messages = Messages.getMessages(TokenGeneratorAdapter.class);
+    @Resource
+    protected ServiceFactory factory = null;
+    private String system;
+    private boolean isTraceEnabled;
+    private boolean isFailOnUnknownProperties;
+    private String defaultConnectionTimeOut;
+    private String defaultReadTimeOut;
+    private String grantType;
+    private String apiScope;
+    private String hostUrl;
+    private boolean ignoreTrustCert;
+    private boolean enableCertSecurity;
+    private String clientId;
+    private String clientSecret;
+    private String keyStore;
+    private String keyStorePwd;
+    private String trustStore;
+    private String trustStorePwd;
+    private Proxy proxy;
 
-    public TokenManager() {
-        Configuration configuration = ConfigurationBuilder.newConfigurationBuilder().build();
-        CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
-        cacheManager.init();
+    public TokenGeneratorAdapter(Proxy proxy) {
 
-        NewCacheConfigurationBuilder<String, Token> cacheConfiguration = CacheConfigurationBuilder
-                .newCacheConfigurationBuilder(String.class, Token.class, null)
-                .withExpiry(new CustomExpiry());
-
-        tokenCache = cacheManager.createCache("tokenCache", cacheConfiguration);
     }
 
-    public Token getToken(String host) {
-        Token token = tokenCache.get(host);
-        if (token == null || token.isExpired()) {
-            token = fetchTokenFromServer(host); // Implement this method to fetch token from the server
-            tokenCache.put(host, token);
+    public Token getToken(String tokenName) {
+        Token token = null;
+        try {
+            CacheService tokenCacheService = factory.getService(CacheService.class);
+            //getTokenRealTime(baseUrl,tokenUri,formDataTemplate);
+            if (token == null || token.isThresholdLimitReached()) {
+                // Implement this method to fetch token from the server
+            }
+            cacheToken(tokenName, token);
+        } catch (ServiceException serviceException) {
+
         }
         return token;
     }
 
-    private class CustomExpiry implements Expiry<String, Token> {
-        @Override
-        public Duration getExpiryForCreation(String key, Token value) {
-            return Duration.ofMillis(value.getExpirationTimeMillis() - System.currentTimeMillis());
+    private void cacheToken(String cacheKey, Token newToken) throws ServiceException {
+        CacheService cacheSvc = factory.getService(CacheService.class);
+        if (newToken != null && cacheSvc != null) {
+            cacheSvc.put("ehcache:" + cacheKey, cacheKey, newToken);
+            log.info(GET_TOKEN, "Token Caching Complete : ");
+        }
+    }
+
+    private <T> T getTokenRealTime(String baseUrl, String tokenUri, String formDataTemplate, List<String> formData, List<Pair> localVarQueryParams, String clientId, String clientSecret) throws ServiceException, IOException, JAXBException, GeneralSecurityException {
+
+        log.begin(TSYSConstants.GET_TOKEN);
+
+        Object result = null;
+        RestConnection connection = null;
+        String endpointURI = buildUrl(baseUrl, tokenUri, localVarQueryParams);
+
+        RestRequest rr = RestRequest.newRequest(endpointURI);
+        rr.setProxy(this.proxy);
+        // String formDataTemplate = "grant_type={0}&scope={1}";
+        connection = rr.post(MessageFormat.format(formDataTemplate, formData.toArray(new String[formData.size()])));
+        connection.setJsonProvider(JSONContext.GSON);
+
+        connection.setContentType(RestConnection.Protocol.FORM_URLENCODED);
+        // timeouts
+        connection.setConnectTimeout(Integer.parseInt(this.defaultConnectionTimeOut));
+        connection.setReadTimeout(Integer.parseInt(this.defaultReadTimeOut));
+
+        connection.setFailOnUnknownProps(isFailOnUnknownProperties);
+        connection.setTrace(isTraceEnabled);
+
+        if (enableCertSecurity) {
+            // keystore and truststore
+            if (StringUtils.isNotBlank(keyStore) && StringUtils.isNotBlank(keyStorePwd)) {
+                connection.setKeyStore(keyStore, keyStorePwd);
+            }
+            if (StringUtils.isNotBlank(trustStore) && StringUtils.isNotBlank(trustStorePwd)) {
+                connection.setTrustStore(trustStore, trustStorePwd);
+            }
+            connection.setIgnoreCertTrust(ignoreTrustCert);
         }
 
-        @Override
-        public Duration getExpiryForAccess(String key, Supplier<? extends Token> value) {
+        connection.setRequestHeader(
+                AUTHORIZATION, String.format("Basic %s", Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes())));
+
+        Class<T> requestClazz = (Class<T>) Token.class;
+        result = connection.getResult(requestClazz, null, null);
+
+        if (result != null) {
+            log.info(TSYS, GET_TOKEN, "Token generation is successfull");
+        } else {
+            String msg = messages.getString(TSYS_303);
+            log.error(TSYS, GET_TOKEN, msg);
+            throw new ServiceException(msg, 303);
+        }
+
+        log.end(GET_TOKEN);
+
+        return requestClazz.cast(result);
+    }
+
+    protected final String buildUrl(String baseURL, String path, List<Pair> queryParams) {
+        log.begin(BUILD_URL);
+        final StringBuilder url = new StringBuilder();
+        url.append(baseURL).append(path);
+
+        if (queryParams != null && !queryParams.isEmpty()) {
+            String prefix = path.contains(SPL_CHAR_QUESTION) ? SPL_CHAR_AND : SPL_CHAR_QUESTION;
+            for (Pair param : queryParams) {
+                if (param.getValue() != null) {
+                    if (prefix != null) {
+                        url.append(prefix);
+                        prefix = null;
+                    } else {
+                        url.append(SPL_CHAR_AND);
+                    }
+                    String value = parameterToString(param.getValue());
+                    url.append(escapeString(param.getName())).append(SPL_CHAR_EQUAL).append(encodeString(value, StandardCharsets.UTF_8.toString()));
+                }
+            }
+        }
+        log.end(BUILD_URL);
+        return url.toString();
+    }
+
+    /**
+     * Coverts parameter To String
+     *
+     * @param param param
+     * @return String
+     */
+    private String parameterToString(Object param) {
+        if (param == null) {
+            return "";
+        } else if (param instanceof Collection) {
+            StringBuilder b = new StringBuilder();
+            for (Object o : (Collection) param) {
+                if (b.length() > 0) {
+                    b.append(",");
+                }
+                b.append(o);
+            }
+            return b.toString();
+        } else {
+            return String.valueOf(param);
+        }
+    }
+
+    /**
+     * Encodes the string using UTF-8 encoding format and replaces
+     * new encoded version of space '+' to '%20'.
+     *
+     * @param str string to be processed
+     * @return processed string value
+     */
+    protected final String escapeString(String str) {
+
+        if (str == null) {
             return null;
         }
 
-        @Override
-        public Duration getExpiryForUpdate(String key, Supplier<? extends Token> oldValue, Token newValue) {
+        String encodedString = encodeString(str, StandardCharsets.UTF_8.toString());
+
+        if (encodedString == null) {
             return null;
         }
+
+        return encodedString.replaceAll("\\+", "%20");
+    }
+
+    /**
+     * Should only be used to encode the string values based on provided encoding.
+     * If supplied encoding is null, default UTF-8 encoding will be used.
+     *
+     * @param value    value to be encoded
+     * @param encoding encoding format
+     * @return encodedString
+     */
+    private final String encodeString(String value, String encoding) {
+        if (Objects.isNull(value)) {
+            return null;
+        }
+
+        try {
+            return URLEncoder.encode(value, Optional.ofNullable(encoding).orElse(StandardCharsets.UTF_8.toString()));
+        } catch (UnsupportedEncodingException e) {
+            log.error(this.system, ENCODE_STRING, e.getCause());
+        }
+        return null;
+    }
+
+    private void setKeyStore(String keyStore, String keyStorePwd) {
+        this.keyStore = keyStore;
+        this.keyStorePwd = keyStorePwd;
+    }
+
+    private void setTrustStore(String trustStore, String trustStorePwd) {
+        this.trustStore = trustStore;
+        this.trustStorePwd = trustStorePwd;
     }
 }
-In your application, you can use the TokenManager to get the token for a specific host:
-java
-Copy code
-public class Main {
-    public static void main(String[] args) {
-        TokenManager tokenManager = new TokenManager();
-
-        String host1 = "https://example-host1.com";
-        String host2 = "https://example-host2.com";
-
-        Token token1 = tokenManager.getToken(host1);
-        Token token2 = tokenManager.getToken(host2);
-
-        System.out.println("Token for host1: " + token1.getValue());
-        System.out.println("Token for host2: " + token2.getValue());
-    }
-}
-Remember that in this example, I've used a simple threshold of one minute (60000 milliseconds) to check if the token is close to expiration. You can adjust the threshold according to your specific requirements. Additionally, the fetchTokenFromServer method needs to be implemented to fetch the token from the authentication server for a given host.
-
-
-
-
-
