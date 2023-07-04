@@ -1,14 +1,95 @@
-protected final String escapeString(String str) {
+protected final <T> T transmit(String endpointURI, Class<T> respObj, Object request, String method, String connectionTimeOut, String readTimeOut, String maskFields, String safeCatchRestExceptionLogName, Consumer<Map<String, List<String>>> responseHeaderConsumer, boolean reload)
+            throws IOException, JAXBException, GeneralSecurityException, ServiceException {
 
-        if (str == null) {
-            return null;
+        log.begin(TRANSMIT);
+        Map<String, String> headers = new HashMap<>();
+        String tokenValue = tsysTokenGeneratorAdapter.getToken().getAccess_token();
+
+        headers.put(AUTHORIZATION, String.join(" ", BEARER_TOKEN_PREFIX, tokenValue));
+
+        Object result = null;
+        RestConnection connection = null;
+        RestRequest restRequest = RestRequest.newRequest(endpointURI);
+        //Set Proxy
+        restRequest.setProxy(getProxy());
+
+        if (POST.equals(method))
+            connection = restRequest.post(request);
+        else if (GET.equals(method))
+            connection = restRequest.get();
+        else if (PUT.equals(method))
+            connection = restRequest.put(request);
+        else if (DELETE.equals(method))
+            connection = restRequest.delete(request);
+        else
+            connection = restRequest.get();
+        headers.forEach(connection::setRequestHeader);
+        
+        Boolean secureLog = Boolean.valueOf(TSYSUtil.safeGetProperty(this.properties, IS_SECURE_LOG, "true"));
+        connection.setSecureLog(secureLog);
+
+        connection.setAccepts(RestConnection.Protocol.JSON);
+        connection.setContentType(RestConnection.Protocol.JSON);
+        connection.setJsonProvider(JSONContext.GSON);
+
+        // enable log data
+        boolean isTraceEnabled = Boolean.parseBoolean(TSYSUtil.safeGetProperty(this.properties, TSYS_ISENABLE_TRACE, "true"));
+        connection.setTrace(isTraceEnabled);
+
+        // set timeouts
+        connection.setConnectTimeout(Integer.parseInt(Optional.ofNullable(connectionTimeOut).orElse(this.defaultConnectionTimeOut)));
+        connection.setReadTimeout(Integer.parseInt(Optional.ofNullable(readTimeOut).orElse(this.defaultReadTimeOut)));
+
+        String enableCertSecurity = TSYSUtil.safeGetProperty(this.properties, TSYS_ENABLE_CERT_SECURITY, TRUE);
+        if (StringUtils.equalsIgnoreCase(enableCertSecurity, TRUE)) {
+            // keystore and truststore
+            String keyStore = TSYSUtil.safeGetProperty(this.properties, TSYS_KEYSTORE);
+            String keyStorePwd = TSYSUtil.safeGetProperty(this.properties, TSYS_KEYSTORE_PWD);
+            String trustStore = TSYSUtil.safeGetProperty(this.properties, TSYS_TRUSTSTORE);
+            String trustStorePwd = TSYSUtil.safeGetProperty(this.properties, TSYS_TRUSTSTORE_PWD);
+            String ignoreTrustCert = TSYSUtil.safeGetProperty(this.properties, TSYS_IGNORE_TRUST_CERT);
+
+            if (StringUtils.isNotBlank(keyStore)&& StringUtils.isNotBlank(keyStorePwd)) {
+                connection.setKeyStore(keyStore, keyStorePwd);
+            }
+
+            if (StringUtils.isNotBlank(trustStore)&& StringUtils.isNotBlank(trustStorePwd)) {
+                connection.setTrustStore(trustStore, trustStorePwd);
+            }
+
+            if (StringUtils.isNotBlank(ignoreTrustCert)) {
+                connection.setIgnoreCertTrust(Boolean.valueOf(ignoreTrustCert));
+            }
+        }
+        Boolean isFailOnUnknownProperties = Boolean.parseBoolean(TSYSUtil.safeGetProperty(this.properties, TSYS_IS_FAIL_ON_UNKNOWN_PROPERTIES, "true"));
+        connection.setFailOnUnknownProps(isFailOnUnknownProperties);
+
+        if (maskFields != null)
+            connection.setMaskFields(maskFields);
+
+        // set request headers on this connection
+
+
+        try {
+            if (byte[].class.equals(respObj)) {
+                result = connection.getResultAsStream(null, null);
+            } else {
+                result = connection.getResult(respObj, null, null);
+            }
+
+            RestConnection finalConnection = connection;
+            Optional.ofNullable(responseHeaderConsumer).ifPresent(c -> c.accept(finalConnection.getResponseHeaders()));
+
+        } catch (RestConnectionException ex) {
+            if (Integer.valueOf(401).equals(ex.getCode()) && StringUtils.isNotEmpty(safeCatchRestExceptionLogName)) {
+                log.error(TSYS, safeCatchRestExceptionLogName, messages.getString(TSYS_302, ex.toString()), ex);
+            } else {
+                throw ex;
+            }
         }
 
-        String encodedString = encodeString(str, StandardCharsets.UTF_8.toString());
 
-        if (encodedString == null) {
-            return null;
-        }
+        log.end(TRANSMIT);
 
-        return encodedString.replaceAll("\\+", "%20");
+        return respObj.cast(result);
     }
