@@ -1,95 +1,475 @@
-protected final <T> T transmit(String endpointURI, Class<T> respObj, Object request, String method, String connectionTimeOut, String readTimeOut, String maskFields, String safeCatchRestExceptionLogName, Consumer<Map<String, List<String>>> responseHeaderConsumer, boolean reload)
-            throws IOException, JAXBException, GeneralSecurityException, ServiceException {
+package com.mschematic.platform.adapter.token;
 
-        log.begin(TRANSMIT);
-        Map<String, String> headers = new HashMap<>();
-        String tokenValue = tsysTokenGeneratorAdapter.getToken().getAccess_token();
+import com.mschematic.logging.Log;
+import com.mschematic.logging.LogFactory;
+import com.mschematic.platform.adapter.token.model.Pair;
+import com.mschematic.platform.adapter.token.model.Token;
+import com.mschematic.rest.RestConnection;
+import com.mschematic.rest.RestRequest;
+import com.mschematic.rest.json.JSONContext;
+import com.mschematic.security.ExternalPropertiesFactory;
+import com.mschematic.security.SecurityContext;
+import com.mschematic.service.ServiceException;
+import com.mschematic.service.ServiceSupport;
+import com.mschematic.service.cache.CacheService;
+import com.mschematic.svcfactory.ServiceFactory;
+import com.mschematic.util.DateUtil;
+import com.mschematic.util.Messages;
+import com.mschematic.util.Properties;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 
-        headers.put(AUTHORIZATION, String.join(" ", BEARER_TOKEN_PREFIX, tokenValue));
+import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
+import javax.xml.bind.JAXBException;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.Authenticator;
+import java.net.InetSocketAddress;
+import java.net.PasswordAuthentication;
+import java.net.Proxy;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-        Object result = null;
-        RestConnection connection = null;
-        RestRequest restRequest = RestRequest.newRequest(endpointURI);
-        //Set Proxy
-        restRequest.setProxy(getProxy());
+public class TokenGeneratorAdapter extends ServiceSupport implements TokenConstants {
+    private static final Log log = LogFactory.getLog(TokenGeneratorAdapter.class);
+    private static final Messages messages = Messages.getMessages(TokenGeneratorAdapter.class);
+    @Resource
+    protected ServiceFactory factory;
+    private String system;
+    private boolean isTraceEnabled;
+    private boolean isFailOnUnknownProperties;
+    private String connectionTimeOut;
+    private String readTimeOut;
+    private String grantType;
+    private String apiScope;
+    private boolean ignoreTrustCert;
+    private boolean enableCertSecurity;
 
-        if (POST.equals(method))
-            connection = restRequest.post(request);
-        else if (GET.equals(method))
-            connection = restRequest.get();
-        else if (PUT.equals(method))
-            connection = restRequest.put(request);
-        else if (DELETE.equals(method))
-            connection = restRequest.delete(request);
-        else
-            connection = restRequest.get();
-        headers.forEach(connection::setRequestHeader);
-        
-        Boolean secureLog = Boolean.valueOf(TSYSUtil.safeGetProperty(this.properties, IS_SECURE_LOG, "true"));
-        connection.setSecureLog(secureLog);
+    private String keyStore;
+    private String keyStorePwd;
+    private String trustStore;
+    private String trustStorePwd;
+    private String baseUrl;
+    private String tokenUri;
+    private String tokenFormData;
 
-        connection.setAccepts(RestConnection.Protocol.JSON);
-        connection.setContentType(RestConnection.Protocol.JSON);
-        connection.setJsonProvider(JSONContext.GSON);
+    private String tokenCache;
+    private String clientId;
+    private String clientSecret;
+    private  double thresholdPrcnt;
+    private final AtomicBoolean refreshAtomicToken = new AtomicBoolean();
+    private ExternalPropertiesFactory externalPropertiesFactory = null;
+    private String propertyFile = null;
+    protected Properties properties = null;
 
-        // enable log data
-        boolean isTraceEnabled = Boolean.parseBoolean(TSYSUtil.safeGetProperty(this.properties, TSYS_ISENABLE_TRACE, "true"));
-        connection.setTrace(isTraceEnabled);
 
-        // set timeouts
-        connection.setConnectTimeout(Integer.parseInt(Optional.ofNullable(connectionTimeOut).orElse(this.defaultConnectionTimeOut)));
-        connection.setReadTimeout(Integer.parseInt(Optional.ofNullable(readTimeOut).orElse(this.defaultReadTimeOut)));
+    /**
+     * Retrieves token from cache. if token present in cache reached threshold,
+     * it makes host call and update the cache with update token
+     * @return Token
+     */
+    public Token getToken() {
+        log.begin(GET_TOKEN);
+        Token token = null;
+        try {
 
-        String enableCertSecurity = TSYSUtil.safeGetProperty(this.properties, TSYS_ENABLE_CERT_SECURITY, TRUE);
-        if (StringUtils.equalsIgnoreCase(enableCertSecurity, TRUE)) {
-            // keystore and truststore
-            String keyStore = TSYSUtil.safeGetProperty(this.properties, TSYS_KEYSTORE);
-            String keyStorePwd = TSYSUtil.safeGetProperty(this.properties, TSYS_KEYSTORE_PWD);
-            String trustStore = TSYSUtil.safeGetProperty(this.properties, TSYS_TRUSTSTORE);
-            String trustStorePwd = TSYSUtil.safeGetProperty(this.properties, TSYS_TRUSTSTORE_PWD);
-            String ignoreTrustCert = TSYSUtil.safeGetProperty(this.properties, TSYS_IGNORE_TRUST_CERT);
-
-            if (StringUtils.isNotBlank(keyStore)&& StringUtils.isNotBlank(keyStorePwd)) {
-                connection.setKeyStore(keyStore, keyStorePwd);
+            token = getCachedToken();
+            if (token == null || token.isThresholdLimitReached()) {
+                // Fetch token from the server
+                if (refreshAtomicToken.compareAndSet(false, true)) {
+                    Token newToken = getTokenFromHost();
+                    //In case of not getting updated token from host,
+                    // let it use the token present on cache as
+                    if(newToken!= null){
+                        token = newToken;
+                    }else{
+                        log.info(GET_TOKEN, String.format("Unable to get New Token for %s host",system));
+                    }
+                    refreshAtomicToken.compareAndSet(true, false);
+                }
+                cacheToken(token);
+                log.info(GET_TOKEN, String.format("New Token  generation Complete and cached: %s",system));
             }
+        } catch (ServiceException serviceException) {
+            log.error(GET_TOKEN, "Error occur while during token creation :", serviceException);
+        }
+        log.end(GET_TOKEN);
+        return token;
+    }
 
-            if (StringUtils.isNotBlank(trustStore)&& StringUtils.isNotBlank(trustStorePwd)) {
-                connection.setTrustStore(trustStore, trustStorePwd);
+    /**
+     * Retrieve the token from cache
+     * @return
+     */
+    private Token getCachedToken() {
+        log.begin(GET_CACHED_TOKEN);
+        Token cachedToken = null;
+        try{
+            CacheService cacheSvc = factory.getService(CacheService.class);
+
+            if (cacheSvc != null) {
+                cachedToken = (Token) cacheSvc.get(EHCACHE + tokenCache, tokenCache);
+                log.info(GET_CACHED_TOKEN, "Token read from cache ");
             }
+        }catch (ServiceException se){
+            log.error(GET_CACHED_TOKEN,"Error occur while reading from cache ",se);
+        }
+        log.end(GET_CACHED_TOKEN);
+        return cachedToken;
+    }
 
-            if (StringUtils.isNotBlank(ignoreTrustCert)) {
-                connection.setIgnoreCertTrust(Boolean.valueOf(ignoreTrustCert));
+    /**
+     * Update cache with new token
+     *
+     * @param newToken New Token
+     */
+    private void cacheToken(Token newToken){
+        try{
+            CacheService cacheSvc = factory.getService(CacheService.class);
+            if (newToken != null && cacheSvc != null) {
+                cacheSvc.put(EHCACHE + tokenCache, tokenCache, newToken);
+                log.info(CACHE_TOKEN, "Token Caching Complete : ");
+            }
+        }catch(ServiceException se){
+            String msg = messages.getString(ERROR_CODE_301,se);
+            log.info(CACHE_TOKEN, msg);
+            log.error(system, CACHE_TOKEN, se);
+        }
+    }
+
+    /**
+     * Retrieve updated token from host and recalculate the expiration time which
+     * can be used to updated the cache based upon token expiration and threshold percentage
+     *
+     * @return Token
+     * @throws ServiceException Service exception
+     */
+    private Token getTokenFromHost() throws ServiceException {
+
+        log.begin(TokenConstants.GET_TOKEN);
+        Token token;
+        List<Pair> localVarQueryParams = new ArrayList<>();
+        localVarQueryParams.add(new Pair("grant_type", grantType));
+        String endpointURI = buildUrl(this.baseUrl, this.tokenUri, localVarQueryParams);
+        try{
+            RestRequest restRequest = RestRequest.newRequest(endpointURI);
+            restRequest.setProxy(this.getProxy());
+            RestConnection connection = restRequest.post(MessageFormat.format(tokenFormData, grantType,apiScope));
+            connection.setJsonProvider(JSONContext.GSON);
+            connection.setContentType(RestConnection.Protocol.FORM_URLENCODED);
+            connection.setConnectTimeout(Integer.parseInt(this.connectionTimeOut));
+            connection.setReadTimeout(Integer.parseInt(this.readTimeOut));
+            connection.setFailOnUnknownProps(isFailOnUnknownProperties);
+            connection.setTrace(isTraceEnabled);
+            if (enableCertSecurity) {
+                // keystore and truststore
+                if (StringUtils.isNotBlank(keyStore) && StringUtils.isNotBlank(keyStorePwd)) {
+                    connection.setKeyStore(keyStore, keyStore);
+                }
+                if (StringUtils.isNotBlank(trustStore) && StringUtils.isNotBlank(trustStorePwd)) {
+                    connection.setTrustStore(trustStore, trustStorePwd);
+                }
+                connection.setIgnoreCertTrust(ignoreTrustCert);
+            }
+            connection.setMaskFields(getProperty(this.properties, MASKFIELDS));
+            connection.setRequestHeader(
+                    AUTHORIZATION, getAuthorization());
+            token = connection.getResult(Token.class, null, null);
+            connection.disconnect();
+            if (token != null) {
+                if(thresholdPrcnt <0.0 || thresholdPrcnt >=100.0){
+                    throw new ServiceException("Threshold percentage must be between 0 and 100");
+                }
+                long expitationTime = calcExpirationWithThreshold(token.getExpires_in(), thresholdPrcnt);
+                token.setExpirationTime(expitationTime);
+                log.info(system, GET_TOKEN, String.format("Token generation is successful and will be expired on and after %s ", DateUtil.getDateString(new Date(expitationTime),DateUtil.IFX_DATETIME_FORMAT)));
+            } else {
+                String msg = messages.getString(ERROR_CODE_302,"Token generation is unsuccessful");
+                log.error(system, GET_TOKEN, msg);
+                throw new ServiceException("Token generation is unsuccessful", 303);
+            }
+        }catch(IOException|JAXBException|GeneralSecurityException exception){
+            String msg = messages.getString(ERROR_CODE_302,exception);
+            log.error(system, GET_TOKEN, exception);
+            throw new ServiceException(msg, 303);
+        }
+        log.end(GET_TOKEN);
+        return token;
+    }
+
+    /**
+     *
+     * @param origExpirationTime expiration time retrieve from
+     * @param thresholdPercentage
+     * @return
+     */
+    private long calcExpirationWithThreshold(long origExpirationTime, double thresholdPercentage){
+        long thresholdInMilies = (long) ((origExpirationTime *(thresholdPercentage/100.0))*1000);
+        return System.currentTimeMillis()+thresholdInMilies;
+    }
+    protected final String buildUrl(String baseURL, String path, List<Pair> queryParams) {
+        log.begin(BUILD_URL);
+        final StringBuilder url = new StringBuilder();
+        url.append(baseURL).append(path);
+
+        if (queryParams != null && !queryParams.isEmpty()) {
+            String prefix = path.contains(SPL_CHAR_QUESTION) ? SPL_CHAR_AND : SPL_CHAR_QUESTION;
+            for (Pair param : queryParams) {
+                if (param.getValue() != null) {
+                    if (prefix != null) {
+                        url.append(prefix);
+                        prefix = null;
+                    } else {
+                        url.append(SPL_CHAR_AND);
+                    }
+                    String value = parameterToString(param.getValue());
+                    url.append(escapeString(param.getName())).append(SPL_CHAR_EQUAL).append(encodeString(value, StandardCharsets.UTF_8.toString()));
+                }
             }
         }
-        Boolean isFailOnUnknownProperties = Boolean.parseBoolean(TSYSUtil.safeGetProperty(this.properties, TSYS_IS_FAIL_ON_UNKNOWN_PROPERTIES, "true"));
-        connection.setFailOnUnknownProps(isFailOnUnknownProperties);
+        log.end(BUILD_URL);
+        return url.toString();
+    }
 
-        if (maskFields != null)
-            connection.setMaskFields(maskFields);
+    /**
+     * Coverts parameter To String
+     *
+     * @param param param
+     * @return String
+     */
+    private String parameterToString(Object param) {
+        if (param == null) {
+            return "";
+        } else if (param instanceof Collection<?>) {
+            StringBuilder b = new StringBuilder();
+            boolean isFirst = true;
+            for (Object o :  (Collection<?>)param) {
+                if(!isFirst){
+                    b.append(",");
+                }else {
+                    isFirst =false;
+                }
+                b.append(o);
+            }
+            return b.toString();
+        } else {
+            return String.valueOf(param);
+        }
+    }
 
-        // set request headers on this connection
+    /**
+     * Encodes the string using UTF-8 encoding format and replaces
+     * new encoded version of space '+' to '%20'.
+     *
+     * @param str string to be processed
+     * @return processed string value
+     */
+    protected final String escapeString(String str) {
 
+        if (str == null) {
+            return null;
+        }
+
+        String encodedString = encodeString(str, StandardCharsets.UTF_8.toString());
+
+        if (encodedString == null) {
+            return null;
+        }
+
+        return encodedString.replaceAll("\\+", "%20");
+    }
+
+    /**
+     * Should only be used to encode the string values based on provided encoding.
+     * If supplied encoding is null, default UTF-8 encoding will be used.
+     *
+     * @param value    value to be encoded
+     * @param encoding encoding format
+     * @return encodedString
+     */
+    private String encodeString(String value, String encoding) {
+        if (Objects.isNull(value)) {
+            return null;
+        }
 
         try {
-            if (byte[].class.equals(respObj)) {
-                result = connection.getResultAsStream(null, null);
+            return URLEncoder.encode(value, Optional.ofNullable(encoding).orElse(StandardCharsets.UTF_8.toString()));
+        } catch (UnsupportedEncodingException e) {
+            log.error(this.system, ENCODE_STRING, e.getCause());
+        }
+        return null;
+    }
+    @Override
+    protected SecurityContext getSecurityContext() {
+        SecurityContext.reset(null);
+        return SecurityContext.getSecurityContext();
+    }
+
+    public String getAuthorization(){
+        return String.format("Basic %s", Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes()));
+    }
+
+    /**
+     * getProperty
+     *
+     * @param properties properties
+     * @param propertyName property Name
+     * @return String
+     */
+    public static String getProperty(Properties properties, String propertyName, String defaultValue) {
+        String value = null;
+        if (properties != null) {
+            value = properties.getProperty(propertyName, defaultValue);
+
+            if (value != null && value.startsWith("@") && value.endsWith("@")) {
+                value = defaultValue;
+            }
+        } else {
+            log.error("Properties object is null");
+        }
+        return value;
+    }
+
+    public static String getProperty(Properties properties, String propertyName) {
+        return getProperty(properties, propertyName, null);
+    }
+    private Proxy getProxy() {
+
+        Proxy proxy = null;
+        String proxyHost = getProperty(this.properties, PROXYHOST);
+        String proxyUser = getProperty(this.properties, PROXYUSER);
+        String proxyProtocol = getProperty(this.properties, PROXYPROTOCOL);
+        String proxyPort = getProperty(this.properties, PROXYPORT);
+        String proxyPassword = getProperty(this.properties, PROXYPWD);
+
+        if (StringUtils.isNotBlank(proxyHost)) {
+            Proxy.Type proxyType;
+            if (StringUtils.isBlank(proxyProtocol)) {
+                proxyType = Proxy.Type.HTTP;
             } else {
-                result = connection.getResult(respObj, null, null);
+                proxyType = Proxy.Type.valueOf(proxyProtocol.toUpperCase());
             }
 
-            RestConnection finalConnection = connection;
-            Optional.ofNullable(responseHeaderConsumer).ifPresent(c -> c.accept(finalConnection.getResponseHeaders()));
-
-        } catch (RestConnectionException ex) {
-            if (Integer.valueOf(401).equals(ex.getCode()) && StringUtils.isNotEmpty(safeCatchRestExceptionLogName)) {
-                log.error(TSYS, safeCatchRestExceptionLogName, messages.getString(TSYS_302, ex.toString()), ex);
-            } else {
-                throw ex;
-            }
+            proxy = new Proxy(proxyType, new InetSocketAddress(proxyHost, Integer.parseInt(proxyPort)));
         }
 
-
-        log.end(TRANSMIT);
-
-        return respObj.cast(result);
+        if (StringUtils.isNotBlank(proxyUser) && StringUtils.isNotBlank(proxyPassword)) {
+            Authenticator.setDefault(
+                    new Authenticator() {
+                        @Override
+                        public PasswordAuthentication getPasswordAuthentication() {
+                            return new PasswordAuthentication(
+                                    proxyUser, proxyPassword.toCharArray()
+                            );
+                        }
+                    }
+            );
+        }
+        return proxy;
     }
+    @PostConstruct
+    protected void loadProperties() {
+        if (this.propertyFile != null) {
+            if (this.externalPropertiesFactory == null) {
+                this.externalPropertiesFactory = new ExternalPropertiesFactory();
+                log.error(system, LOAD_PROPERTIES, "ExternalPropertiesFactory not initialized");
+            }
+            this.properties = this.externalPropertiesFactory.getProperties(this.propertyFile);
+            if (this.properties == null) {
+                log.error(system, LOAD_PROPERTIES,
+                        "External Properties file " + this.propertyFile + " not found");
+                return;
+            }
+
+        }
+        this.system = getProperty(this.properties, SYSTEM);
+        this.isTraceEnabled = Boolean.parseBoolean(getProperty(this.properties, ISENABLE_TRACE,"true"));
+        this.isFailOnUnknownProperties = Boolean.valueOf(getProperty(this.properties, IS_FAIL_ON_UNKNOWN_PROPERTIES, "true"));
+        this.grantType = getProperty(this.properties, TOKEN_GRANT_TYPE);
+        this.apiScope = getProperty(this.properties, TOKEN_SCOPE);
+        this.connectionTimeOut = getProperty(this.properties,CONNECTION_TIMEOUT,DEFAULT_CONNECTION_TIMEOUT);
+        this.readTimeOut = getProperty(this.properties,READ_TIMEOUT,DEFAULT_READ_TIMEOUT);
+        this.enableCertSecurity = Boolean.valueOf(getProperty(this.properties,ENABLE_CERT_SECURITY,TRUE));
+        this.keyStore = getProperty(this.properties, KEYSTORE);
+        this.keyStorePwd = getProperty(this.properties, KEYSTORE_PWD);
+        this.trustStore = getProperty(this.properties, TRUSTSTORE);
+        this.trustStorePwd = getProperty(this.properties, TRUSTSTORE_PWD);
+        this.ignoreTrustCert = Boolean.valueOf(getProperty(this.properties, IGNORE_TRUST_CERT,FALSE));
+        if(NumberUtils.isParsable(getProperty(this.properties, THRESHOLD_PERCENTAGE))){
+            this.thresholdPrcnt = Double.parseDouble(getProperty(this.properties, THRESHOLD_PERCENTAGE));
+        }
+        this.tokenFormData = getProperty(this.properties,TOKEN_FORM_DATA);
+        this.baseUrl = getProperty(this.properties,TOKEN_BASE_URL);
+        this.tokenUri = getProperty(this.properties,TOKEN_URI);
+        this.clientId = getProperty(this.properties,CLIENT_ID);
+        this.clientSecret = getProperty(this.properties,CLIENT_SECRET);
+        this.grantType = getProperty(this.properties,TOKEN_GRANT_TYPE);
+        this.tokenCache = getProperty(this.properties, TOKEN_CACHE_OBJECT);
+    }
+
+    /**
+     * getExternalPropertiesFactory
+     *
+     * @return externalPropertiesFactory
+     */
+    public ExternalPropertiesFactory getExternalPropertiesFactory() {
+        return externalPropertiesFactory;
+    }
+
+    /**
+     * Sets externalPropertiesFactory
+     *
+     * @param externalPropertiesFactory externalPropertiesFactory to set
+     */
+    public void setExternalPropertiesFactory(ExternalPropertiesFactory externalPropertiesFactory) {
+        this.externalPropertiesFactory = externalPropertiesFactory;
+    }
+
+    /**
+     * getPropertyFile
+     *
+     * @return propertyFile
+     */
+    public String getPropertyFile() {
+        return propertyFile;
+    }
+
+    /**
+     * Sets propertyFile
+     *
+     * @param propertyFile propertyFile to set
+     */
+    public void setPropertyFile(String propertyFile) {
+        this.propertyFile = propertyFile;
+    }
+
+    /**
+     * getProperties
+     *
+     * @return properties
+     */
+    public Properties getProperties() {
+        return properties;
+    }
+
+    /**
+     * Sets properties
+     *
+     * @param properties properties to set
+     */
+    public void setProperties(Properties properties) {
+        this.properties = properties;
+    }
+}
+
