@@ -1,8 +1,47 @@
-public boolean isCacheExpired(){
-        Token token = getCachedToken();
-        if(token== null ||token.isThresholdLimitReached()){
-            return true;
+import org.apache.maven.shared.dependency.tree.DependencyNode;
+import org.apache.maven.shared.dependency.tree.DependencyTreeBuilder;
+import org.apache.maven.shared.dependency.tree.DefaultDependencyTreeBuilder;
+import org.apache.maven.shared.dependency.tree.DependencyTreeBuilderException;
+import org.apache.maven.shared.dependency.tree.traversal.DependencyNodeVisitor;
+
+public class MavenDependencyTreeDisplay {
+
+    public static void main(String[] args) {
+        String projectPath = "path/to/your/maven/project"; // Replace with the actual path to your Maven project
+        
+        DependencyTreeBuilder treeBuilder = new DefaultDependencyTreeBuilder();
+        
+        try {
+            DependencyNode rootNode = treeBuilder.buildDependencyTree(projectPath, null);
+            displayDependencyTree(rootNode);
+        } catch (DependencyTreeBuilderException e) {
+            e.printStackTrace();
         }
-        return false;
     }
-how to achieve in case of concurrent thread
+    
+    private static void displayDependencyTree(DependencyNode rootNode) {
+        DependencyNodeVisitor visitor = new DependencyNodeVisitor() {
+            private int depth = 0;
+            
+            @Override
+            public boolean visit(DependencyNode node) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < depth; i++) {
+                    sb.append("  ");
+                }
+                sb.append(node.toNodeString());
+                System.out.println(sb.toString());
+                depth++;
+                return true;
+            }
+            
+            @Override
+            public boolean endVisit(DependencyNode node) {
+                depth--;
+                return true;
+            }
+        };
+        
+        rootNode.accept(visitor);
+    }
+}
