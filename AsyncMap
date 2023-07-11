@@ -1,47 +1,24 @@
-import org.apache.maven.shared.dependency.tree.DependencyNode;
-import org.apache.maven.shared.dependency.tree.DependencyTreeBuilder;
-import org.apache.maven.shared.dependency.tree.DefaultDependencyTreeBuilder;
-import org.apache.maven.shared.dependency.tree.DependencyTreeBuilderException;
-import org.apache.maven.shared.dependency.tree.traversal.DependencyNodeVisitor;
-
-public class MavenDependencyTreeDisplay {
-
-    public static void main(String[] args) {
-        String projectPath = "path/to/your/maven/project"; // Replace with the actual path to your Maven project
-        
-        DependencyTreeBuilder treeBuilder = new DefaultDependencyTreeBuilder();
-        
+public Token getToken() {
+        log.begin(GET_TOKEN);
+        Token token = null;
         try {
-            DependencyNode rootNode = treeBuilder.buildDependencyTree(projectPath, null);
-            displayDependencyTree(rootNode);
-        } catch (DependencyTreeBuilderException e) {
-            e.printStackTrace();
-        }
-    }
-    
-    private static void displayDependencyTree(DependencyNode rootNode) {
-        DependencyNodeVisitor visitor = new DependencyNodeVisitor() {
-            private int depth = 0;
-            
-            @Override
-            public boolean visit(DependencyNode node) {
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < depth; i++) {
-                    sb.append("  ");
+            token = getCachedToken();
+            if (isCacheExpired()) {
+                // Fetch token from the server
+                Token newToken = getTokenFromHost();
+                //In case of not getting updated token from host,
+                // let it use the token present on cache as
+                if(newToken!= null){
+                    token = newToken;
+                }else{
+                    log.info(GET_TOKEN, String.format("Unable to get New Token for %s host, to be continue with cache.",system));
                 }
-                sb.append(node.toNodeString());
-                System.out.println(sb.toString());
-                depth++;
-                return true;
+                cacheToken(token);
+                log.info(GET_TOKEN, String.format("New Token generation complete and cached: %s",system));
             }
-            
-            @Override
-            public boolean endVisit(DependencyNode node) {
-                depth--;
-                return true;
-            }
-        };
-        
-        rootNode.accept(visitor);
+        } catch (ServiceException serviceException) {
+            log.error(GET_TOKEN, "Error occur while during token creation :", serviceException);
+        }
+        log.end(GET_TOKEN);
+        return token;
     }
-}
