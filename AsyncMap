@@ -117,3 +117,41 @@ public class ContentTypeRequestHandler {
         return "URL Encoded Payload";
     }
 }
+------------------
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Predicate;
+
+public class ContentTypeRequestHandler {
+    private Map<Predicate<String>, ContentTypeHandler<String, ?>> handlers;
+
+    public ContentTypeRequestHandler() {
+        handlers = new HashMap<>();
+    }
+
+    public String generateRequestPayload(Object input, String contentType) {
+        ContentTypeHandler<String, ?> handler = findMatchingHandler(contentType);
+        if (handler != null) {
+            return handler.generatePayload(input);
+        } else {
+            throw new IllegalArgumentException("Unsupported content type: " + contentType);
+        }
+    }
+
+    public void registerHandler(Predicate<String> contentTypePredicate, ContentTypeHandler<String, ?> handler) {
+        handlers.put(contentTypePredicate, handler);
+    }
+
+    private ContentTypeHandler<String, ?> findMatchingHandler(String contentType) {
+        return handlers.entrySet().stream()
+                .filter(entry -> entry.getKey().test(contentType))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(null);
+    }
+
+    public interface ContentTypeHandler<R, T> {
+        R generatePayload(T input);
+    }
+}
+
