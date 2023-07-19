@@ -1,23 +1,50 @@
-public Token getToken() {
+public Token getToken(boolean reload) {
         log.begin(GET_TOKEN);
         Token token = null;
         try {
-            token = getCachedToken();
-            if (isCacheExpired()) {
-                // Fetch token from the server
-                Token newToken = getTokenFromHost();
-                //In case of not getting updated token from host,
-                // let it use the token present on cache as
-                if(newToken!= null){
-                    token = newToken;
+            if(reload){
+                token = getTokenFromHost();
+                if(atomicReset.compareAndSet(false,true)){
+                    cacheToken(token);
+                    atomicReset.set(false);
+                    log.info(GET_TOKEN, String.format("Setting cache with newly generated token: %s",system));
                 }else{
-                    log.info(GET_TOKEN, String.format("Unable to get New Token for %s host, to be continue with cache.",system));
+                    log.debug(GET_TOKEN, "Reissuing cached token to");
                 }
-                cacheToken(token);
-                log.info(GET_TOKEN, String.format("New Token generation complete and cached: %s",system));
+            }else{
+                if(reload || (token =getCachedToken()) == null || token.isTokenExpired()) {
+                    log.info("Token is expired getting from host");
+                    token = getTokenFromHost();
+                    if(atomicReset.compareAndSet(false,true)){
+                        cacheToken(token);
+                        atomicReset.set(false);
+                        log.info(GET_TOKEN, String.format("Setting cache with newly generated token: %s",system));
+                    }else{
+                        log.debug(GET_TOKEN, "Getting Token From Cache");
+                        return token;
+                    }
+                }else if (isThresholdReached()) {
+                    log.debug(GET_TOKEN, "Reset flag is set to "+atomicReset.get());
+                    if(atomicReset.compareAndSet(false,true)){
+                        log.info(GET_TOKEN, "Getting New Token From Host");
+                        // Fetch token from the server
+                        token = getTokenFromHost();
+                        //In case of not getting updated token from host,
+                        cacheToken(token);
+                        atomicReset.set(false);
+                        log.info(GET_TOKEN, String.format("New Token generation complete and cached: %s",system));
+                    }else{
+                        log.info(GET_TOKEN, String.format("Cached token  used during threshold : %s",system));
+                        return token;
+                    }
+                }else{
+                    log.debug(GET_TOKEN, "Getting Token From Cache");
+                    return token;
+                }
             }
-        } catch (ServiceException serviceException) {
-            log.error(GET_TOKEN, "Error occur while during token creation :", serviceException);
+        } catch (Exception exception) {
+            atomicReset.set(false);
+            log.error(GET_TOKEN, "Error occur while during token creation :", exception);
         }
         log.end(GET_TOKEN);
         return token;
