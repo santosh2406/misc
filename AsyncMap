@@ -1,35 +1,3 @@
-import com.mschematic.rest.RestConnection;
-
-public interface Predicate<T> {
-    boolean verify(RestConnection.Protocol protocol);
-    String createPostBody(String requestPayload);
-}
--------------------------------------------------
-package com.mschematic.platform.adapter.token;
-
-import com.mschematic.rest.RestConnection;
-
-public class ContentTypePredicate implements Predicate<String> {
-    private final RestConnection.Protocol expectedContentType;
-    private final Predicate<String> handler;
-
-    public ContentTypePredicate(RestConnection.Protocol expectedContentType, Predicate<String> handler) {
-        this.expectedContentType = expectedContentType;
-        this.handler = handler;
-    }
-
-    @Override
-    public boolean verify(RestConnection.Protocol actualContentType) {
-        return actualContentType != null && actualContentType.equals(actualContentType) && handler.verify(actualContentType);
-    }
-
-    @Override
-    public String createPostBody(String requestBody) {
-        return handler.createPostBody(requestBody);
-    }
-}
-
-package com.mschematic.platform.adapter.token;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,48 +12,47 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Predicate;
 
 public class ContentTypeRequestHandler {
 
-    public Predicate<String> createHandler(RestConnection.Protocol contentType, Predicate<String> handler) {
-        return new ContentTypePredicate(contentType, handler);
+    public Predicate<RestConnection.Protocol> createHandler(RestConnection.Protocol contentType) {
+        return actualContentType -> actualContentType != null &&
+                actualContentType.equals(contentType) &&
+                verifyContentType(actualContentType);
     }
 
     public String handleJson(Object requestPayload) throws JsonProcessingException {
-        ObjectMapper jsonBody = new ObjectMapper();
-        jsonBody.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        return jsonBody.writeValueAsString(requestPayload);
+        ObjectMapper jsonMapper = new ObjectMapper();
+        jsonMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        return jsonMapper.writeValueAsString(requestPayload);
     }
 
-    public String handleXml(Class classz,Object requestPayload ) throws JAXBException {
-        String xmlBody = null;
-        JAXBContext context = JAXBContextFactory.getInstance().getContext(classz);
+    public String handleXml(Class<?> clazz, Object requestPayload) throws JAXBException {
+        JAXBContext context = JAXBContextFactory.getInstance().getContext(clazz);
         Marshaller marshaller = context.createMarshaller();
         StringWriter writer = new StringWriter();
-        marshaller.marshal(requestPayload,writer);
-        xmlBody = writer.toString();
-        return xmlBody;
+        marshaller.marshal(requestPayload, writer);
+        return writer.toString();
     }
 
-    public String handleFormUrlEncoded(HashMap<String,String> requestPayload)throws UnsupportedEncodingException{
+    public String handleFormUrlEncoded(HashMap<String, String> requestPayload) throws UnsupportedEncodingException {
         StringBuilder result = new StringBuilder();
         boolean first = true;
-        for(Map.Entry<String, String> entry : requestPayload.entrySet()){
-            if (first)
+        for (Map.Entry<String, String> entry : requestPayload.entrySet()) {
+            if (first) {
                 first = false;
-            else
+            } else {
                 result.append("&");
+            }
             result.append(URLEncoder.encode(entry.getKey(), "UTF-8"));
             result.append("=");
             result.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
         }
         return result.toString();
     }
+
+    private boolean verifyContentType(RestConnection.Protocol actualContentType) {
+        return actualContentType != null;
+    }
 }
-
-        Map<String,String> tokenPayload = new HashMap<>();
-        tokenPayload.put("grant_type",grantType);
-        tokenPayload.put("scope",apiScope);
-        contentTypeRequestHandler.createHandler(RestConnection.Protocol.FORM_URLENCODED, contentTypeRequestHandler.handleFormUrlEncoded(tokenPayload));
-
-remove Predicate<T> interface and rewrite same code without constructor
