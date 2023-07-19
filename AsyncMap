@@ -1,58 +1,65 @@
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mschematic.rest.RestConnection;
-import com.mschematic.xml.bind.JAXBContextFactory;
-
+import java.util.HashMap;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
-import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.Map;
-import java.util.function.Predicate;
 
 public class ContentTypeRequestHandler {
-
-    public Predicate<RestConnection.Protocol> createHandler(RestConnection.Protocol contentType) {
-        return actualContentType -> actualContentType != null &&
-                actualContentType.equals(contentType) &&
-                verifyContentType(actualContentType);
-    }
-
-    public String handleJson(Object requestPayload) throws JsonProcessingException {
-        ObjectMapper jsonMapper = new ObjectMapper();
-        jsonMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        return jsonMapper.writeValueAsString(requestPayload);
-    }
-
-    public String handleXml(Class<?> clazz, Object requestPayload) throws JAXBException {
-        JAXBContext context = JAXBContextFactory.getInstance().getContext(clazz);
-        Marshaller marshaller = context.createMarshaller();
-        StringWriter writer = new StringWriter();
-        marshaller.marshal(requestPayload, writer);
-        return writer.toString();
-    }
-
-    public String handleFormUrlEncoded(RestConnection.Protocol contentType, Map<String, String> requestPayload)
-            throws UnsupportedEncodingException {
-        StringBuilder result = new StringBuilder();
-        boolean first = true;
-        for (Map.Entry<String, String> entry : requestPayload.entrySet()) {
-            if (first) {
-                first = false;
-            } else {
-                result.append("&");
+    public static String generateRequestPayload(Object input, String contentType) {
+        if (contentType.equals("application/json")) {
+            return generateJsonPayload(input);
+        } else if (contentType.equals("application/xml")) {
+            if (input instanceof HashMap) {
+                throw new IllegalArgumentException("Invalid input type for XML content type.");
             }
-            result.append(URLEncoder.encode(entry.getKey(), "UTF-8"));
-            result.append("=");
-            result.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
+            return generateXmlPayload(input);
+        } else if (contentType.equals("application/x-www-form-urlencoded")) {
+            if (!(input instanceof HashMap)) {
+                throw new IllegalArgumentException("Invalid input type for URL encoded content type.");
+            }
+            return generateUrlEncodedPayload((HashMap<String, String>) input);
+        } else {
+            throw new IllegalArgumentException("Unsupported content type: " + contentType);
         }
-        return result.toString();
     }
-
-    private boolean verifyContentType(RestConnection.Protocol actualContentType) {
-        return actualContentType != null;
+    
+    private static String generateJsonPayload(Object input) {
+        // Logic to convert input object to JSON payload
+        return "JSON Payload";
+    }
+    
+    private static String generateXmlPayload(Object input) {
+        try {
+            JAXBContext jaxbContext = JAXBContext.newInstance(input.getClass());
+            Marshaller marshaller = jaxbContext.createMarshaller();
+            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+            // Convert input object to XML payload
+            // Example: marshaller.marshal(input, System.out);
+            return "XML Payload";
+        } catch (JAXBException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to generate XML payload.");
+        }
+    }
+    
+    private static String generateUrlEncodedPayload(HashMap<String, String> input) {
+        // Logic to convert input hashmap to URL encoded payload
+        return "URL Encoded Payload";
     }
 }
+public class Main {
+    public static void main(String[] args) {
+        Object input = new Object();  // Replace with your actual input object
+        
+        String jsonPayload = ContentTypeRequestHandler.generateRequestPayload(input, "application/json");
+        System.out.println("JSON Payload: " + jsonPayload);
+        
+        String xmlPayload = ContentTypeRequestHandler.generateRequestPayload(input, "application/xml");
+        System.out.println("XML Payload: " + xmlPayload);
+        
+        HashMap<String, String> urlEncodedInput = new HashMap<>();  // Replace with your actual input hashmap
+        String urlEncodedPayload = ContentTypeRequestHandler.generateRequestPayload(urlEncodedInput, "application/x-www-form-urlencoded");
+        System.out.println("URL Encoded Payload: " + urlEncodedPayload);
+    }
+}
+_—------------------
+
