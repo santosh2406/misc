@@ -1,46 +1,70 @@
-public Token getToken(boolean reload) {
-    log.begin(GET_TOKEN);
-    Token token = null;
-    try {
-        if (reload) {
-            token = getTokenFromHost();
-            if (atomicReset.compareAndSet(false, true)) {
-                cacheToken(token);
-                atomicReset.set(false);
-                log.info(GET_TOKEN, String.format("Setting cache with newly generated token: %s", system));
-            } else {
-                log.debug(GET_TOKEN, "Reissuing cached token");
-            }
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class ContentTypeHandler {
+
+    public static void main(String[] args) {
+        // Sample usage
+        String contentType = "application/json";
+        String requestBody = "{\"name\":\"John\",\"age\":30}";
+
+        Predicate<String> jsonHandler = createHandler("application/json", ContentTypeHandler::handleJson);
+
+        // Use the JSON handler to create the POST request body
+        if (jsonHandler.test(contentType)) {
+            String postBody = jsonHandler.createPostBody(requestBody);
+            System.out.println("POST Request Body: " + postBody);
         } else {
-            boolean resetFlag = false;
-            token = getCachedToken();
-            
-            if (token == null || token.isTokenExpired()) {
-                log.info("Token is expired, getting from host");
-                token = getTokenFromHost();
-                resetFlag = true;
-            } else if (isThresholdReached()) {
-                resetFlag = atomicReset.compareAndSet(false, true);
-                if (resetFlag) {
-                    log.info(GET_TOKEN, "Getting New Token From Host");
-                    token = getTokenFromHost();
-                    cacheToken(token);
-                    atomicReset.set(false);
-                    log.info(GET_TOKEN, String.format("New Token generation complete and cached: %s", system));
-                } else {
-                    log.info(GET_TOKEN, String.format("Cached token used during threshold: %s", system));
-                }
-            }
-            
-            if (!resetFlag) {
-                log.debug(GET_TOKEN, "Getting Token From Cache");
-                return token;
-            }
+            System.out.println("No handler found for JSON content type");
         }
-    } catch (Exception exception) {
-        atomicReset.set(false);
-        log.error(GET_TOKEN, "Error occurred during token creation:", exception);
     }
-    log.end(GET_TOKEN);
-    return token;
+
+    public static Predicate<String> createHandler(String expectedContentType, Predicate<String> handler) {
+        return new ContentTypePredicate(expectedContentType, handler);
+    }
+
+    public static boolean handleJson(String contentType) {
+        // Handle JSON content type
+        System.out.println("Handling JSON content type: " + contentType);
+
+        // Add your logic to create the POST request body
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("name", "John");
+        requestBody.put("age", 30);
+
+        // Serialize the request body to JSON
+        Gson gson = new GsonBuilder().create();
+        String jsonBody = gson.toJson(requestBody);
+
+        // You can return the JSON string or perform additional operations on it
+        return jsonBody;
+    }
+
+    public interface Predicate<T> {
+        boolean test(T t);
+        String createPostBody(T t);
+    }
+
+    public static class ContentTypePredicate implements Predicate<String> {
+        private final String expectedContentType;
+        private final Predicate<String> handler;
+
+        public ContentTypePredicate(String expectedContentType, Predicate<String> handler) {
+            this.expectedContentType = expectedContentType;
+            this.handler = handler;
+        }
+
+        @Override
+        public boolean test(String actualContentType) {
+            return actualContentType != null && actualContentType.equalsIgnoreCase(expectedContentType) && handler.test(actualContentType);
+        }
+
+        @Override
+        public String createPostBody(String requestBody) {
+            return handler.createPostBody(requestBody);
+        }
+    }
 }
