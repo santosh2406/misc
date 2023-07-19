@@ -1,70 +1,91 @@
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.mschematic.rest.RestConnection;
 
+public interface Predicate<T> {
+    boolean verify(RestConnection.Protocol protocol);
+    String createPostBody(String requestPayload);
+}
+-------------------------------------------------
+package com.mschematic.platform.adapter.token;
+
+import com.mschematic.rest.RestConnection;
+
+public class ContentTypePredicate implements Predicate<String> {
+    private final RestConnection.Protocol expectedContentType;
+    private final Predicate<String> handler;
+
+    public ContentTypePredicate(RestConnection.Protocol expectedContentType, Predicate<String> handler) {
+        this.expectedContentType = expectedContentType;
+        this.handler = handler;
+    }
+
+    @Override
+    public boolean verify(RestConnection.Protocol actualContentType) {
+        return actualContentType != null && actualContentType.equals(actualContentType) && handler.verify(actualContentType);
+    }
+
+    @Override
+    public String createPostBody(String requestBody) {
+        return handler.createPostBody(requestBody);
+    }
+}
+
+package com.mschematic.platform.adapter.token;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mschematic.rest.RestConnection;
+import com.mschematic.xml.bind.JAXBContextFactory;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ContentTypeHandler {
+public class ContentTypeRequestHandler {
 
-    public static void main(String[] args) {
-        // Sample usage
-        String contentType = "application/json";
-        String requestBody = "{\"name\":\"John\",\"age\":30}";
-
-        Predicate<String> jsonHandler = createHandler("application/json", ContentTypeHandler::handleJson);
-
-        // Use the JSON handler to create the POST request body
-        if (jsonHandler.test(contentType)) {
-            String postBody = jsonHandler.createPostBody(requestBody);
-            System.out.println("POST Request Body: " + postBody);
-        } else {
-            System.out.println("No handler found for JSON content type");
-        }
+    public Predicate<String> createHandler(RestConnection.Protocol contentType, Predicate<String> handler) {
+        return new ContentTypePredicate(contentType, handler);
     }
 
-    public static Predicate<String> createHandler(String expectedContentType, Predicate<String> handler) {
-        return new ContentTypePredicate(expectedContentType, handler);
+    public String handleJson(Object requestPayload) throws JsonProcessingException {
+        ObjectMapper jsonBody = new ObjectMapper();
+        jsonBody.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        return jsonBody.writeValueAsString(requestPayload);
     }
 
-    public static boolean handleJson(String contentType) {
-        // Handle JSON content type
-        System.out.println("Handling JSON content type: " + contentType);
-
-        // Add your logic to create the POST request body
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("name", "John");
-        requestBody.put("age", 30);
-
-        // Serialize the request body to JSON
-        Gson gson = new GsonBuilder().create();
-        String jsonBody = gson.toJson(requestBody);
-
-        // You can return the JSON string or perform additional operations on it
-        return jsonBody;
+    public String handleXml(Class classz,Object requestPayload ) throws JAXBException {
+        String xmlBody = null;
+        JAXBContext context = JAXBContextFactory.getInstance().getContext(classz);
+        Marshaller marshaller = context.createMarshaller();
+        StringWriter writer = new StringWriter();
+        marshaller.marshal(requestPayload,writer);
+        xmlBody = writer.toString();
+        return xmlBody;
     }
 
-    public interface Predicate<T> {
-        boolean test(T t);
-        String createPostBody(T t);
-    }
-
-    public static class ContentTypePredicate implements Predicate<String> {
-        private final String expectedContentType;
-        private final Predicate<String> handler;
-
-        public ContentTypePredicate(String expectedContentType, Predicate<String> handler) {
-            this.expectedContentType = expectedContentType;
-            this.handler = handler;
+    public String handleFormUrlEncoded(HashMap<String,String> requestPayload)throws UnsupportedEncodingException{
+        StringBuilder result = new StringBuilder();
+        boolean first = true;
+        for(Map.Entry<String, String> entry : requestPayload.entrySet()){
+            if (first)
+                first = false;
+            else
+                result.append("&");
+            result.append(URLEncoder.encode(entry.getKey(), "UTF-8"));
+            result.append("=");
+            result.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
         }
-
-        @Override
-        public boolean test(String actualContentType) {
-            return actualContentType != null && actualContentType.equalsIgnoreCase(expectedContentType) && handler.test(actualContentType);
-        }
-
-        @Override
-        public String createPostBody(String requestBody) {
-            return handler.createPostBody(requestBody);
-        }
+        return result.toString();
     }
 }
+
+        Map<String,String> tokenPayload = new HashMap<>();
+        tokenPayload.put("grant_type",grantType);
+        tokenPayload.put("scope",apiScope);
+        contentTypeRequestHandler.createHandler(RestConnection.Protocol.FORM_URLENCODED, contentTypeRequestHandler.handleFormUrlEncoded(tokenPayload));
+
+remove Predicate<T> interface and rewrite same code without constructor
