@@ -4,23 +4,41 @@ public Token getToken(boolean reload) {
     try {
         if (reload) {
             token = getTokenFromHost();
-            cacheToken(token);
-            log.info(GET_TOKEN, String.format("Setting cache with newly generated token: %s", system));
+            if (atomicReset.compareAndSet(false, true)) {
+                cacheToken(token);
+                atomicReset.set(false);
+                log.info(GET_TOKEN, String.format("Setting cache with newly generated token: %s", system));
+            } else {
+                log.debug(GET_TOKEN, "Reissuing cached token");
+            }
         } else {
+            boolean resetFlag = false;
             token = getCachedToken();
+            
             if (token == null || token.isTokenExpired()) {
                 log.info("Token is expired, getting from host");
                 token = getTokenFromHost();
-                cacheToken(token);
-                log.info(GET_TOKEN, String.format("Setting cache with newly generated token: %s", system));
+                resetFlag = true;
             } else if (isThresholdReached()) {
-                log.info(GET_TOKEN, "Threshold reached, getting new token from host");
-                token = getTokenFromHost();
-                cacheToken(token);
-                log.info(GET_TOKEN, String.format("New token generation complete and cached: %s", system));
+                resetFlag = atomicReset.compareAndSet(false, true);
+                if (resetFlag) {
+                    log.info(GET_TOKEN, "Getting New Token From Host");
+                    token = getTokenFromHost();
+                    cacheToken(token);
+                    atomicReset.set(false);
+                    log.info(GET_TOKEN, String.format("New Token generation complete and cached: %s", system));
+                } else {
+                    log.info(GET_TOKEN, String.format("Cached token used during threshold: %s", system));
+                }
+            }
+            
+            if (!resetFlag) {
+                log.debug(GET_TOKEN, "Getting Token From Cache");
+                return token;
             }
         }
     } catch (Exception exception) {
+        atomicReset.set(false);
         log.error(GET_TOKEN, "Error occurred during token creation:", exception);
     }
     log.end(GET_TOKEN);
