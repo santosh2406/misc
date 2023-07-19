@@ -10,7 +10,6 @@ import javax.xml.bind.Marshaller;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
 
@@ -36,7 +35,8 @@ public class ContentTypeRequestHandler {
         return writer.toString();
     }
 
-    public String handleFormUrlEncoded(HashMap<String, String> requestPayload) throws UnsupportedEncodingException {
+    public String handleFormUrlEncoded(RestConnection.Protocol contentType, Map<String, String> requestPayload)
+            throws UnsupportedEncodingException {
         StringBuilder result = new StringBuilder();
         boolean first = true;
         for (Map.Entry<String, String> entry : requestPayload.entrySet()) {
