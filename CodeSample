@@ -1,0 +1,65 @@
+import java.util.HashMap;
+import java.util.function.Predicate;
+
+public class ContentTypeRequestHandler {
+    private static final Predicate<String> isJsonContentType = contentType -> contentType.equals("application/json");
+    private static final Predicate<String> isXmlContentType = contentType -> contentType.equals("application/xml");
+    private static final Predicate<String> isUrlEncodedContentType = contentType -> contentType.equals("application/x-www-form-urlencoded");
+
+    public static String generateRequestPayload(Object input, String contentType) {
+        ContentTypeHandler handler;
+
+        if (isJsonContentType.test(contentType)) {
+            handler = new JsonContentTypeHandler();
+        } else if (isXmlContentType.test(contentType)) {
+            handler = new XmlContentTypeHandler();
+        } else if (isUrlEncodedContentType.test(contentType)) {
+            handler = new UrlEncodedContentTypeHandler();
+        } else {
+            throw new IllegalArgumentException("Unsupported content type: " + contentType);
+        }
+
+        return handler.generatePayload(input);
+    }
+
+    private interface ContentTypeHandler {
+        String generatePayload(Object input);
+    }
+
+    private static class JsonContentTypeHandler implements ContentTypeHandler {
+        @Override
+        public String generatePayload(Object input) {
+            // Logic to convert input object to JSON payload
+            return "JSON Payload";
+        }
+    }
+
+    private static class XmlContentTypeHandler implements ContentTypeHandler {
+        @Override
+        public String generatePayload(Object input) {
+            if (input instanceof HashMap) {
+                throw new IllegalArgumentException("Invalid input type for XML content type.");
+            }
+
+            try {
+                // Logic to convert input object to XML payload
+                return "XML Payload";
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException("Failed to generate XML payload.");
+            }
+        }
+    }
+
+    private static class UrlEncodedContentTypeHandler implements ContentTypeHandler {
+        @Override
+        public String generatePayload(Object input) {
+            if (!(input instanceof HashMap)) {
+                throw new IllegalArgumentException("Invalid input type for URL encoded content type.");
+            }
+
+            // Logic to convert input hashmap to URL encoded payload
+            return "URL Encoded Payload";
+        }
+    }
+}
