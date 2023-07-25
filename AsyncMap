@@ -18,10 +18,10 @@ public class DataPointTest {
     public static Map<String, String> organizationData = createOrganizationDataPoint("Acme Corp", "New York");
 
     @DataPoint
-    public static String personTheory1 = "Person Theory A";
+    public static String[] personTheory1 = {"Person Theory A"};
 
     @DataPoint
-    public static String organizationTheory1 = "Organization Theory X";
+    public static String[] organizationTheory1 = {"Organization Theory X"};
 
     // Helper method to create a person data point (map)
     private static Map<String, String> createPersonDataPoint(String name, int age) {
@@ -40,16 +40,18 @@ public class DataPointTest {
     }
 
     @Theory
-    public void testOrganizationDataPoint(@FromDataPoints("organizationData") Map<String, String> organizationData, String organizationTheory) {
+    public void testOrganizationDataPoint(@FromDataPoints("organizationData") Map<String, String> organizationData,
+                                          @FromDataPoints("organizationTheory1") String[] organizationTheory) {
         System.out.println("Organization Data Point: " + organizationData);
-        System.out.println("Selected Organization Theory: " + organizationTheory);
+        System.out.println("Selected Organization Theory: " + organizationTheory[0]);
         // Add your test logic here for organization data point
     }
 
     @Theory
-    public void testPersonDataPoint(@FromDataPoints("personData") Map<String, String> personData, String personTheory) {
+    public void testPersonDataPoint(@FromDataPoints("personData") Map<String, String> personData,
+                                    @FromDataPoints("personTheory1") String[] personTheory) {
         System.out.println("Person Data Point: " + personData);
-        System.out.println("Selected Person Theory: " + personTheory);
+        System.out.println("Selected Person Theory: " + personTheory[0]);
         // Add your test logic here for person data point
     }
 }
