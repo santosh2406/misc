@@ -1,4 +1,14 @@
- public Token getToken(boolean reload) throws ServiceException {
+TokenGenerationRefreshAdapter is responsible for generating tokens for each system.
+ Other class calls getToken(reload) method to get Token.
+ getToken(reload) method is threadSafe. getToken(reload) method follows given flow.
+ During concurrent thread execution coming to TokenGenerationRefreshAdapter, it is the responsibility of TokenGenerationRefreshAdapter
+ First check if Token is null then it performs call to getTokenFromHost() to get valid token.
+ Valid token has two method isThresholdReached() and isExpired() method.
+ if Token is not null and reload is false and isThresholdReached() is false and isExpired() is false, then Token will be cached in ehcache.
+ if token isThresholdReached() is true and or isExpired() is true then token refreshed by calling getTokenFromHost().
+ Based upon given logic only one thread to getTokenFromHost() and update the ehcache and other concurrent call to use valid Token.
+ if token isThresholdReached() is false and or isExpired() is false then Token from ehcache should be use during concurrent call.
+public Token getToken(boolean reload) throws ServiceException {
         log.begin(GET_TOKEN);
         Token token = null;
         try {
