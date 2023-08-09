@@ -1,57 +1,6 @@
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.experimental.theories.DataPoint;
-import org.junit.experimental.theories.FromDataPoints;
-import org.junit.experimental.theories.Theories;
-import org.junit.experimental.theories.Theory;
-
-import java.util.HashMap;
-import java.util.Map;
-
-@RunWith(Theories.class)
-public class DataPointTest {
-
-    @DataPoint
-    public static Map<String, String> personData = createPersonDataPoint("John", 30);
-
-    @DataPoint
-    public static Map<String, String> organizationData = createOrganizationDataPoint("Acme Corp", "New York");
-
-    @DataPoint
-    public static String[] personTheory1 = {"Person Theory A"};
-
-    @DataPoint
-    public static String[] organizationTheory1 = {"Organization Theory X"};
-
-    // Helper method to create a person data point (map)
-    private static Map<String, String> createPersonDataPoint(String name, int age) {
-        Map<String, String> personData = new HashMap<>();
-        personData.put("Name", name);
-        personData.put("Age", String.valueOf(age));
-        return personData;
-    }
-
-    // Helper method to create an organization data point (map)
-    private static Map<String, String> createOrganizationDataPoint(String name, String location) {
-        Map<String, String> organizationData = new HashMap<>();
-        organizationData.put("Name", name);
-        organizationData.put("Location", location);
-        return organizationData;
-    }
-
-    @Theory
-    public void testOrganizationDataPoint(@FromDataPoints("organizationData") Map<String, String> organizationData,
-                                          @FromDataPoints("organizationTheory1") String[] organizationTheory) {
-        System.out.println("Organization Data Point: " + organizationData);
-        System.out.println("Selected Organization Theory: " + organizationTheory[0]);
-        // Add your test logic here for organization data point
-    }
-
-    @Theory
-    public void testPersonDataPoint(@FromDataPoints("personData") Map<String, String> personData,
-                                    @FromDataPoints("personTheory1") String[] personTheory) {
-        System.out.println("Person Data Point: " + personData);
-        System.out.println("Selected Person Theory: " + personTheory[0]);
-        // Add your test logic here for person data point
-    }
-}
+String ADDRESS_TYPE= "Card|Statement|Correspondence";
+String ADDRESS_TYPE_REGX = "\\b(?:Statement|Card|Correspondence)\\b";
+Pattern addressPattern = Pattern.compile(ADDRESS_TYPE_REGX);
+Matcher match = addressPattern.matcher(ADDRESS_TYPE);
+ismatched = match.matches();
+is not working
