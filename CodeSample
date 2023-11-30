@@ -1,21 +1,25 @@
 try (ByteArrayOutputStream os = new ByteArrayOutputStream()){
-            PDDocument doc = PDDocument.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(path));
+    PDDocument doc = PDDocument.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(path));
 
-            PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
-            doc.getDocumentCatalog().setAcroForm(form);
+    PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
+    doc.getDocumentCatalog().setAcroForm(form);
 
+    PDTextField textField = (PDTextField) form.getField("Account Number 1");
+    textField.setDefaultValue("Enter account number");
 
+    // Update default appearance to set the placeholder text
+    textField.setDefaultAppearance("/Helv 12 Tf 0.7 g");
+    // Adjust the color and font size as needed
 
-            PDTextField textField = (PDTextField)form.getField("Account Number 1");
-            textField.setDefaultValue("Enter account number");
-            PDAnnotationWidget widget = textField.getWidgets().get(0);
-            PDAppearanceCharacteristicsDictionary fieldAppearance = widget.getAppearanceCharacteristics();
-            fieldAppearance.setBorderColour(new PDColor(new float[]{0,1,0}, PDDeviceRGB.INSTANCE));
-            widget.setPrinted(true);
-            doc.save(os);
-            doc.close();
+    PDAnnotationWidget widget = textField.getWidgets().get(0);
+    PDAppearanceCharacteristicsDictionary fieldAppearance = widget.getAppearanceCharacteristics();
+    fieldAppearance.setBorderColour(new PDColor(new float[]{0,1,0}, PDDeviceRGB.INSTANCE));
+    widget.setPrinted(true);
 
-            FileUtils.writeByteArrayToFile(new File("test_" + path), os.toByteArray());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    doc.save(os);
+    doc.close();
+
+    FileUtils.writeByteArrayToFile(new File("test_" + path), os.toByteArray());
+} catch (IOException e) {
+    e.printStackTrace();
+}
