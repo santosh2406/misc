@@ -1,51 +1,50 @@
 try (ByteArrayOutputStream os = new ByteArrayOutputStream()){
-            PDDocument doc = PDDocument.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(path));
+    PDDocument doc = PDDocument.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(path));
 
-            PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
-            doc.getDocumentCatalog().setAcroForm(form);
+    PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
+    doc.getDocumentCatalog().setAcroForm(form);
 
-            PDTextField textField = (PDTextField) form.getField("Account Number 1");
-            textField.setDefaultValue("Enter account number");
+    PDTextField textField = (PDTextField) form.getField("Account Number 1");
+    textField.setDefaultValue("Enter account number");
 
-            // Update default appearance to set the placeholder text
-            textField.setDefaultAppearance("/Helv 12 Tf 0.7 g");
-            // Adjust the color and font size as needed
+    // Update default appearance to set the placeholder text
+    textField.setDefaultAppearance("/Helv 12 Tf 0.7 g");
+    // Adjust the color and font size as needed
 
-            PDAnnotationWidget widget = textField.getWidgets().get(0);
+    PDAnnotationWidget widget = textField.getWidgets().get(0);
 
-            PDAppearanceDictionary appearanceDictionary = widget.getAppearance();
-            if (appearanceDictionary == null) {
-                appearanceDictionary = new PDAppearanceDictionary();
-                widget.setAppearance(appearanceDictionary);
-            }
-            PDAppearanceEntry appearanceEntry = appearanceDictionary.getNormalAppearance();
+    PDAppearanceDictionary appearanceDictionary = widget.getAppearance();
+    if (appearanceDictionary == null) {
+        appearanceDictionary = new PDAppearanceDictionary();
+        widget.setAppearance(appearanceDictionary);
+    }
+    PDAppearanceEntry appearanceEntry = appearanceDictionary.getNormalAppearance();
 
-            // Create a new appearance stream
-            PDAppearanceStream appearanceStream = new PDAppearanceStream(doc);
-            appearanceDictionary.setNormalAppearance(appearanceEntry);
+    // Create a new appearance stream
+    PDAppearanceStream appearanceStream = new PDAppearanceStream(doc);
+    appearanceDictionary.setNormalAppearance(appearanceEntry);
 
-            // Set the appearance stream using a content stream
-            PDAppearanceContentStream cs = new PDAppearanceContentStream(appearanceStream);
-            cs.setFont(PDType1Font.HELVETICA, 12);
-            cs.setNonStrokingColor(0); // Set the color
-            cs.beginText();
-            cs.newLineAtOffset(2, 2); // Adjust position as needed
-            cs.showText(textField.getDefaultValue()); // Show the default value as the placeholder
-            cs.endText();
+    // Set the appearance stream using a content stream
+    try (PDAppearanceContentStream cs = new PDAppearanceContentStream(appearanceStream)) {
+        cs.setFont(PDType1Font.HELVETICA, 12);
+        cs.setNonStrokingColor(0); // Set the color
+        cs.beginText();
+        cs.newLineAtOffset(2, 2); // Adjust position as needed
+        cs.showText(textField.getDefaultValue()); // Show the default value as the placeholder
+        cs.endText();
+    }
 
-            appearanceDictionary.setNormalAppearance(appearanceEntry);
-            widget.setAppearance(appearanceDictionary);
+    appearanceDictionary.setNormalAppearance(appearanceEntry);
+    widget.setAppearance(appearanceDictionary);
 
-            PDAppearanceCharacteristicsDictionary fieldAppearance = widget.getAppearanceCharacteristics();
-            fieldAppearance.setBorderColour(new PDColor(new float[]{0,1,0}, PDDeviceRGB.INSTANCE));
-            widget.setPrinted(true);
+    PDAppearanceCharacteristicsDictionary fieldAppearance = widget.getAppearanceCharacteristics();
+    fieldAppearance.setBorderColour(new PDColor(new float[]{0,1,0}, PDDeviceRGB.INSTANCE));
+    widget.setPrinted(true);
 
-            doc.save(os);
-            doc.close();
+    doc.save(os);
+    doc.close();
 
-            FileUtils.writeByteArrayToFile(new File("test_" + path), os.toByteArray());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-PDAppearanceContentStream cs = new PDAppearanceContentStream(appearanceStream); is null hence cs.setFont(PDType1Font.HELVETICA, 12); showing null pointer exception, please correct
+    FileUtils.writeByteArrayToFile(new File("test_" + path), os.toByteArray());
+} catch (IOException e) {
+    e.printStackTrace();
+}
