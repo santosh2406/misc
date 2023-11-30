@@ -1,29 +1,22 @@
-try (PDDocument document = PDDocument.load(new File("input.pdf"))) {
-    PDAcroForm acroForm = document.getDocumentCatalog().getAcroForm();
+            PDDocument doc = PDDocument.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(path));
 
-    // Assuming the field name is "Account Number 1"
-    PDTextField textField = (PDTextField) acroForm.getField("Account Number 1");
-    textField.setDefaultValue("Enter account number");
-    textField.setAdditionalActions(COSName.V, getJavaScriptValidation());
+            PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
+            doc.getDocumentCatalog().setAcroForm(form);
 
-    document.save("output.pdf");
-} catch (IOException e) {
-    e.printStackTrace();
-}
+            PDTextField textField = (PDTextField) form.getField("Account Number 1");
+            textField.setDefaultValue("Enter account number");
 
-private COSDictionary getJavaScriptValidation() {
-    COSDictionary dictionary = new COSDictionary();
-    COSDictionary javascript = new COSDictionary();
+            textField.setDefaultAppearance("/Helv 12 Tf 0.7 g");
 
-    // JavaScript to validate the text field
-    String jsScript = "var fieldValue = this.getField('Account Number 1').value; "
-                    + "if (fieldValue.trim().length === 0) { "
-                    + "app.alert('Please enter a value for Account Number.'); "
-                    + "}";
-
-    COSString js = new COSString(jsScript.getBytes(StandardCharsets.ISO_8859_1));
-    javascript.setItem(COSName.JS, js);
-    dictionary.setItem(COSName.JS, javascript);
-
-    return dictionary;
-}
+            // Add validation for the text field
+            String javaScript = "var fieldValue = this.getField('Account Number 1').value;" +
+                    "if (fieldValue.length < 10) {" +
+                    "app.alert({cMsg: 'Account number should be at least 10 characters long.', cTitle: 'Validation Error'});" +
+                    "}";
+            PDFormFieldAdditionalActions pdFormFieldAdditionalActions = new PDFormFieldAdditionalActions();
+            PDActionJavaScript pdActionJS = new PDActionJavaScript();
+            pdActionJS.setAction(javaScript);
+            pdFormFieldAdditionalActions.setK(pdActionJS);
+            textField.setActions(pdFormFieldAdditionalActions);
+            doc.save(new File("test_" + path));
+            doc.close();
