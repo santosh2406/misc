@@ -1,22 +1,28 @@
-            PDDocument doc = PDDocument.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(path));
+try (PDDocument doc = PDDocument.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(path))) {
 
-            PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
-            doc.getDocumentCatalog().setAcroForm(form);
+    PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
+    doc.getDocumentCatalog().setAcroForm(form);
 
-            PDTextField textField = (PDTextField) form.getField("Account Number 1");
-            textField.setDefaultValue("Enter account number");
+    PDTextField textField = (PDTextField) form.getField("Account Number 1");
+    textField.setDefaultValue("Enter account number");
+    textField.setDefaultAppearance("/Helv 12 Tf 0.7 g");
 
-            textField.setDefaultAppearance("/Helv 12 Tf 0.7 g");
+    String javaScript = "var fieldValue = this.getField('Account Number 1').value;" +
+            "if (fieldValue.length < 10) {" +
+            "app.alert({cMsg: 'Account number should be at least 10 characters long.', cTitle: 'Validation Error'});" +
+            "}";
 
-            // Add validation for the text field
-            String javaScript = "var fieldValue = this.getField('Account Number 1').value;" +
-                    "if (fieldValue.length < 10) {" +
-                    "app.alert({cMsg: 'Account number should be at least 10 characters long.', cTitle: 'Validation Error'});" +
-                    "}";
-            PDFormFieldAdditionalActions pdFormFieldAdditionalActions = new PDFormFieldAdditionalActions();
-            PDActionJavaScript pdActionJS = new PDActionJavaScript();
-            pdActionJS.setAction(javaScript);
-            pdFormFieldAdditionalActions.setK(pdActionJS);
-            textField.setActions(pdFormFieldAdditionalActions);
-            doc.save(new File("test_" + path));
-            doc.close();
+    // Set JavaScript action on document close
+    COSDictionary dictionary = new COSDictionary();
+    dictionary.setName(COSName.TYPE, "Action");
+    dictionary.setName(COSName.S, "JavaScript");
+    dictionary.setString(COSName.JS, javaScript);
+    
+    COSDictionary additionalActions = new COSDictionary();
+    additionalActions.setItem(COSName.WC, dictionary);
+    doc.getDocumentCatalog().getCOSObject().setItem(COSName.AA, additionalActions);
+
+    doc.save(new File("test_" + path));
+} catch (IOException e) {
+    e.printStackTrace();
+}
