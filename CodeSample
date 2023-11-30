@@ -1,40 +1,21 @@
-TokenGenerationRefreshAdapter is responsible for generating tokens for each system.
- Other class calls getToken(reload) method to get Token.
- getToken(reload) method is threadSafe. getToken(reload) method follows given flow.
- During concurrent thread execution coming to TokenGenerationRefreshAdapter, it is the responsibility of TokenGenerationRefreshAdapter
- First check if Token is null then it performs call to getTokenFromHost() to get valid token.
- Valid token has two method isThresholdReached() and isExpired() method.
- if Token is not null and reload is false and isThresholdReached() is false and isExpired() is false, then Token will be cached in ehcache.
- if token isThresholdReached() is true and or isExpired() is true then token refreshed by calling getTokenFromHost().
- Based upon given logic only one thread to getTokenFromHost() and update the ehcache and other concurrent call to use valid Token.
- if token isThresholdReached() is false and or isExpired() is false then Token from ehcache should be use during concurrent call.
-public Token getToken(boolean reload) throws ServiceException {
-        log.begin(GET_TOKEN);
-        Token token = null;
-        try {
-            String system = getProperty(this.properties, SYSTEM);
-            if (reload || (token = getCachedToken()) == null || token.isTokenExpired() || token.isThresholdLimitReached()) {
+try (ByteArrayOutputStream os = new ByteArrayOutputStream()){
+            PDDocument doc = PDDocument.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(path));
 
-                if (reload) {
-                    log.info(GET_TOKEN, String.format("Token Reload requested for system:%s", system));
-                } else {
-                    log.info(GET_TOKEN, String.format("Token is null/expired/thresholdReached for system:%s", system));
-                }
-                token = getTokenFromHost(system);
-                if (atomicReset.compareAndSet(false, true)) {
-                    cacheToken(token, system);
-                    atomicReset.set(false);
-                    log.info(GET_TOKEN, String.format("AtomicReset completed and cached for system:%s", system));
-                } else {
-                    log.info(GET_TOKEN, "AtomicReset is in progress for reload/expired/thresholdReached token, skipped caching");
-                }
-            }
+            PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
+            doc.getDocumentCatalog().setAcroForm(form);
 
-        } catch (Exception exception) {
-            atomicReset.set(false);
-            token = getTokenFromHost(getProperty(this.properties, SYSTEM));
-            log.error(GET_TOKEN, "Error occurred during token creation:", exception);
+
+
+            PDTextField textField = (PDTextField)form.getField("Account Number 1");
+            textField.setDefaultValue("Enter account number");
+            PDAnnotationWidget widget = textField.getWidgets().get(0);
+            PDAppearanceCharacteristicsDictionary fieldAppearance = widget.getAppearanceCharacteristics();
+            fieldAppearance.setBorderColour(new PDColor(new float[]{0,1,0}, PDDeviceRGB.INSTANCE));
+            widget.setPrinted(true);
+            doc.save(os);
+            doc.close();
+
+            FileUtils.writeByteArrayToFile(new File("test_" + path), os.toByteArray());
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        log.end(GET_TOKEN);
-        return token;
-    }
