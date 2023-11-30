@@ -13,7 +13,11 @@ try (ByteArrayOutputStream os = new ByteArrayOutputStream()){
 
     PDAnnotationWidget widget = textField.getWidgets().get(0);
 
-    // Explicitly set the appearance stream for the field
+    // Create an appearance dictionary and set the default appearance entry
+    PDAppearanceDictionary appearanceDictionary = new PDAppearanceDictionary();
+    PDAppearanceEntry appearanceEntry = new PDAppearanceEntry();
+
+    // Set the appearance stream using a content stream
     try (PDAppearanceContentStream cs = new PDAppearanceContentStream(doc, widget)) {
         cs.setFont(PDType1Font.HELVETICA, 12);
         cs.setNonStrokingColor(0); // Set the color
@@ -22,6 +26,9 @@ try (ByteArrayOutputStream os = new ByteArrayOutputStream()){
         cs.showText(textField.getDefaultValue()); // Show the default value as the placeholder
         cs.endText();
     }
+
+    appearanceDictionary.setNormalAppearance(appearanceEntry);
+    widget.setAppearance(appearanceDictionary);
 
     PDAppearanceCharacteristicsDictionary fieldAppearance = widget.getAppearanceCharacteristics();
     fieldAppearance.setBorderColour(new PDColor(new float[]{0,1,0}, PDDeviceRGB.INSTANCE));
