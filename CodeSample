@@ -1,50 +1,21 @@
-try (ByteArrayOutputStream os = new ByteArrayOutputStream()){
-    PDDocument doc = PDDocument.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(path));
+try (PDDocument doc = PDDocument.load(new File("input.pdf"))) {
+    PDAcroForm acroForm = doc.getDocumentCatalog().getAcroForm();
 
-    PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
-    doc.getDocumentCatalog().setAcroForm(form);
-
-    PDTextField textField = (PDTextField) form.getField("Account Number 1");
+    PDTextField textField = (PDTextField) acroForm.getField("Account Number 1");
     textField.setDefaultValue("Enter account number");
+    
+    // Add validation for the text field
+    String javaScript = "var fieldValue = this.getField('Account Number 1').value;" +
+                        "if (fieldValue.length < 10) {" +
+                        "app.alert({cMsg: 'Account number should be at least 10 characters long.', cTitle: 'Validation Error'});" +
+                        "}";
+    textField.setAdditionalAction(COSName.getPDFName("K"), PDActionFactory.createJavaScript(javaScript));
 
     // Update default appearance to set the placeholder text
     textField.setDefaultAppearance("/Helv 12 Tf 0.7 g");
     // Adjust the color and font size as needed
 
-    PDAnnotationWidget widget = textField.getWidgets().get(0);
-
-    PDAppearanceDictionary appearanceDictionary = widget.getAppearance();
-    if (appearanceDictionary == null) {
-        appearanceDictionary = new PDAppearanceDictionary();
-        widget.setAppearance(appearanceDictionary);
-    }
-    PDAppearanceEntry appearanceEntry = appearanceDictionary.getNormalAppearance();
-
-    // Create a new appearance stream
-    PDAppearanceStream appearanceStream = new PDAppearanceStream(doc);
-    appearanceDictionary.setNormalAppearance(appearanceEntry);
-
-    // Set the appearance stream using a content stream
-    try (PDAppearanceContentStream cs = new PDAppearanceContentStream(appearanceStream)) {
-        cs.setFont(PDType1Font.HELVETICA, 12);
-        cs.setNonStrokingColor(0); // Set the color
-        cs.beginText();
-        cs.newLineAtOffset(2, 2); // Adjust position as needed
-        cs.showText(textField.getDefaultValue()); // Show the default value as the placeholder
-        cs.endText();
-    }
-
-    appearanceDictionary.setNormalAppearance(appearanceEntry);
-    widget.setAppearance(appearanceDictionary);
-
-    PDAppearanceCharacteristicsDictionary fieldAppearance = widget.getAppearanceCharacteristics();
-    fieldAppearance.setBorderColour(new PDColor(new float[]{0,1,0}, PDDeviceRGB.INSTANCE));
-    widget.setPrinted(true);
-
-    doc.save(os);
-    doc.close();
-
-    FileUtils.writeByteArrayToFile(new File("test_" + path), os.toByteArray());
+    doc.save(new File("output.pdf"));
 } catch (IOException e) {
     e.printStackTrace();
 }
