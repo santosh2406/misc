@@ -15,14 +15,9 @@ try (ByteArrayOutputStream os = new ByteArrayOutputStream()){
 
     // Create an appearance dictionary and set the default appearance entry
     PDAppearanceDictionary appearanceDictionary = new PDAppearanceDictionary();
-    PDAppearanceEntry appearanceEntry = new PDAppearanceEntry();
-
-    // Create a new appearance stream
-    PDAppearanceStream appearanceStream = new PDAppearanceStream(doc);
-    appearanceDictionary.setNormalAppearance(appearanceEntry);
 
     // Set the appearance stream using a content stream
-    try (PDAppearanceContentStream cs = new PDAppearanceContentStream(appearanceStream)) {
+    try (PDAppearanceContentStream cs = new PDAppearanceContentStream(widget)) {
         cs.setFont(PDType1Font.HELVETICA, 12);
         cs.setNonStrokingColor(0); // Set the color
         cs.beginText();
@@ -31,7 +26,6 @@ try (ByteArrayOutputStream os = new ByteArrayOutputStream()){
         cs.endText();
     }
 
-    appearanceDictionary.setNormalAppearance(appearanceEntry);
     widget.setAppearance(appearanceDictionary);
 
     PDAppearanceCharacteristicsDictionary fieldAppearance = widget.getAppearanceCharacteristics();
