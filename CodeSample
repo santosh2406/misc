@@ -1,27 +1,30 @@
- try (PDDocument doc = PDDocument.load(new File("input.pdf"))) {
+try (PDDocument doc = PDDocument.load(new File("input.pdf"))) {
 
-    PDAcroForm acroForm = doc.getDocumentCatalog().getAcroForm();
-    doc.getDocumentCatalog().setAcroForm(acroForm);
+    PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
+    doc.getDocumentCatalog().setAcroForm(form);
 
-    PDTextField textField = (PDTextField) acroForm.getField("Account Number 1");
+    PDTextField textField = (PDTextField) form.getField("Account Number 1");
     textField.setDefaultValue("Enter account number");
     textField.setDefaultAppearance("/Helv 12 Tf 0.7 g");
 
-    // JavaScript to change the border color based on the field value
-    String javaScript = 
-        "var fieldValue = this.getField('Account Number 1').value;" +
-        "if (fieldValue.trim().length === 0) {" +
-        "    this.getField('Account Number 1').borderColor = color.red;" +
-        "} else {" +
-        "    this.getField('Account Number 1').borderColor = color.black;" +
-        "}";
-
-    // Set JavaScript action on field blur event
-    PDFormFieldAdditionalActions additionalActions = new PDFormFieldAdditionalActions();
-    PDActionJavaScript onBlurAction = new PDActionJavaScript(javaScript);
-    additionalActions.setC(onBlurAction); // Set JavaScript on 'C' (On Blurred) event
-
-    textField.setActions(additionalActions);
+    // Assuming you're updating the field dynamically in your application
+    // Check if the text field value is present
+    if (textField.getValueAsString().isEmpty()) {
+        // If no value is present, set the border color to red
+        PDAppearanceCharacteristicsDictionary fieldAppearance = textField.getAppearanceCharacteristics();
+        if (fieldAppearance == null) {
+            fieldAppearance = new PDAppearanceCharacteristicsDictionary(new COSDictionary());
+            textField.setAppearanceCharacteristics(fieldAppearance);
+        }
+        fieldAppearance.setBorderColour(new PDColor(new float[]{1, 0, 0}, PDDeviceRGB.INSTANCE));
+    } else {
+        // If value is present, set the default border color
+        PDAppearanceCharacteristicsDictionary fieldAppearance = textField.getAppearanceCharacteristics();
+        if (fieldAppearance != null) {
+            // Remove the border color to revert to default
+            fieldAppearance.getCOSObject().removeItem(COSName.BC);
+        }
+    }
 
     doc.save(new File("output.pdf"));
 } catch (IOException e) {
