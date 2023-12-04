@@ -1,30 +1,36 @@
 try (PDDocument doc = PDDocument.load(new File("input.pdf"))) {
 
     PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
-    doc.getDocumentCatalog().setAcroForm(form);
-
     PDTextField textField = (PDTextField) form.getField("Account Number 1");
     textField.setDefaultValue("Enter account number");
     textField.setDefaultAppearance("/Helv 12 Tf 0.7 g");
 
-    // Assuming you're updating the field dynamically in your application
-    // Check if the text field value is present
-    if (textField.getValueAsString().isEmpty()) {
-        // If no value is present, set the border color to red
-        PDAppearanceCharacteristicsDictionary fieldAppearance = textField.getAppearanceCharacteristics();
-        if (fieldAppearance == null) {
-            fieldAppearance = new PDAppearanceCharacteristicsDictionary(new COSDictionary());
-            textField.setAppearanceCharacteristics(fieldAppearance);
-        }
-        fieldAppearance.setBorderColour(new PDColor(new float[]{1, 0, 0}, PDDeviceRGB.INSTANCE));
-    } else {
-        // If value is present, set the default border color
-        PDAppearanceCharacteristicsDictionary fieldAppearance = textField.getAppearanceCharacteristics();
-        if (fieldAppearance != null) {
-            // Remove the border color to revert to default
-            fieldAppearance.getCOSObject().removeItem(COSName.BC);
-        }
-    }
+    COSDictionary normalAppearance = new COSDictionary();
+    COSArray whiteBorderColor = new COSArray();
+    whiteBorderColor.add(COSInteger.ZERO); // R
+    whiteBorderColor.add(COSInteger.ZERO); // G
+    whiteBorderColor.add(COSInteger.ZERO); // B
+    normalAppearance.setItem(COSName.BC, whiteBorderColor);
+
+    COSDictionary redAppearance = new COSDictionary();
+    COSArray redBorderColor = new COSArray();
+    redBorderColor.add(COSInteger.ONE); // R
+    redBorderColor.add(COSInteger.ZERO); // G
+    redBorderColor.add(COSInteger.ZERO); // B
+    redAppearance.setItem(COSName.BC, redBorderColor);
+
+    // Create a JavaScript action to set the appearance based on field value
+    String jsScript = 
+        "var fieldValue = this.getField('Account Number 1').value;" +
+        "if (fieldValue.length === 0) {" +
+        "    this.getField('Account Number 1').setAction('Field', 'BorderColor', [0, 0, 0]);" +
+        "} else {" +
+        "    this.getField('Account Number 1').setAction('Field', 'BorderColor', [1, 0, 0]);" +
+        "}";
+    PDActionJavaScript pdActionJS = new PDActionJavaScript(jsScript);
+
+    // Set the JavaScript action to the text field
+    textField.getWidgets().get(0).setAction(COSName.K, pdActionJS);
 
     doc.save(new File("output.pdf"));
 } catch (IOException e) {
