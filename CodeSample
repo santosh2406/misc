@@ -1,28 +1,29 @@
-try (PDDocument doc = PDDocument.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(path))) {
+ try (PDDocument doc = PDDocument.load(new File("input.pdf"))) {
 
-    PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
-    doc.getDocumentCatalog().setAcroForm(form);
+    PDAcroForm acroForm = doc.getDocumentCatalog().getAcroForm();
+    doc.getDocumentCatalog().setAcroForm(acroForm);
 
-    PDTextField textField = (PDTextField) form.getField("Account Number 1");
+    PDTextField textField = (PDTextField) acroForm.getField("Account Number 1");
     textField.setDefaultValue("Enter account number");
     textField.setDefaultAppearance("/Helv 12 Tf 0.7 g");
 
-    String javaScript = "var fieldValue = this.getField('Account Number 1').value;" +
-            "if (fieldValue.length < 10) {" +
-            "app.alert({cMsg: 'Account number should be at least 10 characters long.', cTitle: 'Validation Error'});" +
-            "}";
+    // JavaScript to change the border color based on the field value
+    String javaScript = 
+        "var fieldValue = this.getField('Account Number 1').value;" +
+        "if (fieldValue.trim().length === 0) {" +
+        "    this.getField('Account Number 1').borderColor = color.red;" +
+        "} else {" +
+        "    this.getField('Account Number 1').borderColor = color.black;" +
+        "}";
 
-    // Set JavaScript action on document close
-    COSDictionary dictionary = new COSDictionary();
-    dictionary.setName(COSName.TYPE, "Action");
-    dictionary.setName(COSName.S, "JavaScript");
-    dictionary.setString(COSName.JS, javaScript);
-    
-    COSDictionary additionalActions = new COSDictionary();
-    additionalActions.setItem(COSName.WC, dictionary);
-    doc.getDocumentCatalog().getCOSObject().setItem(COSName.AA, additionalActions);
+    // Set JavaScript action on field blur event
+    PDFormFieldAdditionalActions additionalActions = new PDFormFieldAdditionalActions();
+    PDActionJavaScript onBlurAction = new PDActionJavaScript(javaScript);
+    additionalActions.setC(onBlurAction); // Set JavaScript on 'C' (On Blurred) event
 
-    doc.save(new File("test_" + path));
+    textField.setActions(additionalActions);
+
+    doc.save(new File("output.pdf"));
 } catch (IOException e) {
     e.printStackTrace();
 }
