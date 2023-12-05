@@ -1,84 +1,34 @@
-Given code should not save or print pdf if alert message found. however its printing or saving even if there is missing field
-private void processPdf (String path) {
-        System.out.println(path);
-        try {
-            PDDocument doc = PDDocument.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(path));
-            PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
-
-            PDTextField textField = (PDTextField) form.getField("Account Number 1");
-            textField.setDefaultAppearance("/Helv 12 Tf 0.7 g");
-
-            List<String> fieldList = getMandatoryPdfFields();
-            String mandatoryFieldJs = "if (verifyFields(this, ['Account Number 1'])) this.print();" +
-                    "function verifyFields(doc, fields) { " +
-                    "   var emptyFields = new Array();" +
-                    "   for (var i=0; i<fields.length; i++) { " +
-                    "       var f = doc.getField(fields[i]); " +
-                    "       if (f==null) continue; " +
-                    "       if (((f.type==\"text\" && f.value==\"\") || " +
-                    "           ((f.type==\"combobox\" || f.type==\"listbox\") && f.value==\" \") || " +
-                    "           (f.type==\"radiobutton\" && f.value==\"Off\")))" +
-                    "               emptyFields.push(f.name);" +
-                    "   }" +
-                    " " +
-                    "   if (emptyFields.length==0)\n" +
-                    "       return true;\n" +
-                    " " +
-                    "   var msg = \"Missing Fields:\\n\"; " +
-                    "   for (var i=0; i<emptyFields.length; i++) { " +
-                    "       msg += emptyFields[i] + \", \"; " +
-                    "       if (i>0 && i%5==0) msg+=\"\\n\"; " +
-                    "   } " +
-                    "   msg = msg.replace(/\\,\\s+$/,\"\"); " +
-                    "   app.alert(msg,3);\n" +
-                    "   return false;\n" +
-                    "}";
-            String jScript =
-                        "if(event.target.name === 'Account Number 1' && 0 === event.target.valueAsString.length) {" +
-                            "   event.target.strokeColor = color.red ;" +
-                        "} else if (event.target.name === 'Account Number 1') {" +
-                            "event.target.strokeColor = color.black ;" +
-                        "}";
-
-            PDAnnotationWidget widget = textField.getWidgets().get(0);
-            PDAppearanceCharacteristicsDictionary fieldAppearance = widget.getAppearanceCharacteristics();
-            fieldAppearance.setBorderColour(new PDColor(new float[]{0,1,0}, PDDeviceRGB.INSTANCE));
-            widget.setAppearanceCharacteristics(fieldAppearance);
-             // Annotation base Actions for the widget
-            PDAnnotationAdditionalActions annotationActions = new PDAnnotationAdditionalActions();
-
-            // Create an action when focus
-            PDActionJavaScript jsFocusAction = new PDActionJavaScript();
-            jsFocusAction.setAction(jScript);
-            annotationActions.setFo(jsFocusAction);
-
-            // Create an action when blur
-            PDActionJavaScript jsBlurAction = new PDActionJavaScript();
-            jsBlurAction.setAction(jScript);
-            annotationActions.setBl(jsBlurAction);
-
-            widget.setActions(annotationActions);
-
-            // Actions for the field
-            PDFormFieldAdditionalActions fieldActions = new PDFormFieldAdditionalActions();
-
-            // Create an action when the field value changes
-            PDActionJavaScript jsChangeAction = new PDActionJavaScript();
-            jsChangeAction.setAction(jScript);
-            fieldActions.setC(jsChangeAction);
-
-
-            PDActionJavaScript pdActionJS = new PDActionJavaScript();
-            pdActionJS.setAction(mandatoryFieldJs);
-            PDDocumentCatalogAdditionalActions pdfWindowAction = new PDDocumentCatalogAdditionalActions();
-            pdfWindowAction.setWS(pdActionJS);
-            pdfWindowAction.setWP(pdActionJS);
-            doc.getDocumentCatalog().setActions(pdfWindowAction);
-
-            textField.getActions().getCOSObject().addAll(fieldActions.getCOSObject());
-            doc.save(new File("test_" + path));
-            doc.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+private boolean validateFields(PDAcroForm form, List<String> mandatoryFields) {
+    for (String fieldName : mandatoryFields) {
+        PDField field = form.getField(fieldName);
+        if (field == null) {
+            System.out.println("Field " + fieldName + " not found.");
+            return false;
+        } else if (field instanceof PDTextField && ((PDTextField) field).getValueAsString().isEmpty()) {
+            System.out.println("Field " + fieldName + " is empty.");
+            return false;
         }
     }
+    return true;
+}
+
+private void processPdf(String path) {
+    try (PDDocument doc = PDDocument.load(new File(path))) {
+        PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
+
+        // Your existing code to manipulate the PDF form fields and set actions
+
+        List<String> mandatoryFieldList = getMandatoryPdfFields();
+
+        // Validate mandatory fields
+        if (!validateFields(form, mandatoryFieldList)) {
+            System.out.println("Validation failed. PDF not saved or printed.");
+            return; // Exit without saving or printing
+        }
+
+        // Save the PDF after validation passes
+        doc.save(new File("test_" + path));
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
