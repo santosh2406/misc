@@ -1,34 +1,144 @@
-private boolean validateFields(PDAcroForm form, List<String> mandatoryFields) {
-    for (String fieldName : mandatoryFields) {
-        PDField field = form.getField(fieldName);
-        if (field == null) {
-            System.out.println("Field " + fieldName + " not found.");
-            return false;
-        } else if (field instanceof PDTextField && ((PDTextField) field).getValueAsString().isEmpty()) {
-            System.out.println("Field " + fieldName + " is empty.");
-            return false;
+mocking not happing based upon given code
+
+@RunWith(Theories.class)
+public class TestBAOFormGeneration {
+    private static MockEJBContainer mockEJBContainer = new MockEJBContainer();
+    @Rule
+    public MockitoRule mockitoRule = MockitoJUnit.rule();
+    private static BAOFormGenerationFHBAdapter baoFormGenerationFHBAdapter = null;
+    @Mock
+    private static BookingManager bookingSvc = null;
+    @Mock
+    private static Reference referenceSvc = null;
+    @Mock
+    private static FormsManager formSvc = null;
+    @Mock
+    private static AcctTitleService acctTitleSvc = null;
+    @Mock
+    private static ServiceFactory factory = null;
+    static String DISCLOSUREID = "DISCLOSUREID";
+    static String APPLICATIONID = "APPLICATIONID";
+    static String APPLICATION_TYPE = "APPLICATIONID_TYPE";
+    static String DOCURN = "docUrn";
+    static String DOCNAME = "name";
+    static String ISSIGNATUREREQUIRED = "isSignatureRequired";
+    static String ISSIGNED = "isSigned";
+    static String DISCLOSUREDATA = "disclosureData";
+    static String MIMETYPE = "mimeType";
+    static String ISTAGGED = "isTagged";
+    static String SUBTYPE = "subType";
+    static String ISREPEATABLE = "isRepeatable";
+    static String UID = "uid";
+    static String APPLNAME = "ApplName";
+
+    @DataPoint("CERT-UBO")
+    public static Map<String, String> CERT_UBO(){
+        final Map<String, String> certUboFormData = new HashMap<>();
+        certUboFormData.put(DISCLOSUREID,"174502");
+        return certUboFormData;
+    }
+    private Disclosure createRequest(Map<String, String> map) {
+        Disclosure disclosure = new Disclosure();
+        disclosure.setAcctId(map.get(FormGenConstants.ACCOUNT_NUMBER));
+        disclosure.setId(Long.valueOf(map.get(DISCLOSUREID)));
+        disclosure.setApplId(map.get(APPLICATIONID));
+        disclosure.setDocUrn(map.get(DOCURN));
+        disclosure.setName(map.get(DOCNAME));
+        disclosure.setType(map.get(APPLICATION_TYPE));
+        disclosure.setDisclosureData(map.get(DISCLOSUREDATA));
+        disclosure.setMimeType(map.get(MIMETYPE));
+        disclosure.setIsSignatureRequired(Boolean.valueOf(map.get(ISSIGNATUREREQUIRED)));
+        disclosure.setIsSigned(Boolean.valueOf(map.get(ISSIGNED)));
+        disclosure.setIsTagged(Boolean.valueOf(map.get(ISTAGGED)));
+        disclosure.setSubType(map.get(SUBTYPE));
+        disclosure.setIsRepeatable(Boolean.valueOf(map.get(ISREPEATABLE)));
+        AuditInfo auditInfo = new AuditInfo();
+        auditInfo.setUid(map.get(UID));
+        auditInfo.setApplName(map.get(APPLNAME));
+        disclosure.setCreator(auditInfo);
+        return disclosure;
+    }
+
+    @Theory
+    public void testCertUbo(@FromDataPoints("CERT-UBO") Map<String, String> testData) {
+        try {
+            try {
+                
+                when(factory.getService(BookingManager.class)).thenReturn(bookingSvc);
+                when(factory.getService(Reference.class)).thenReturn(referenceSvc);
+                when(factory.getService(AcctTitleService.class)).thenReturn(acctTitleSvc);
+                when(factory.getService(FormsManager.class)).thenReturn(formSvc);
+            } catch (ServiceException e) {
+                e.printStackTrace();
+            }
+
+            RequestOptions options = new RequestOptions();
+            options.setReqUID(UUID.randomUUID().toString());
+            Answer<Object> getDummyApplication = new Answer<Object>() {
+                @Override
+                public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+
+                    return getApplication(testData.get(APPLICATIONID));
+                }
+            };
+
+            doAnswer(getDummyApplication).when(bookingSvc).getApplication(any(), any(), any());
+            Disclosure request = createRequest(testData);
+            Disclosure response = baoFormGenerationFHBAdapter.printBookingDisclosure(request, options);
+
+            XmlDumpStream stream = new XmlDumpStream(System.out);
+            stream.write(request);
+            stream.write(response);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Assert.fail(e.toString());
         }
     }
-    return true;
-}
 
-private void processPdf(String path) {
-    try (PDDocument doc = PDDocument.load(new File(path))) {
-        PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
+    @Before
+    public void setUpBeforeClass() {
+        MockitoAnnotations.initMocks(this);
+        factory = Mockito.mock(ServiceFactory.class);
+        bookingSvc = Mockito.mock(BookingManager.class);
 
-        // Your existing code to manipulate the PDF form fields and set actions
+        referenceSvc = Mockito.mock(Reference.class);
+        formSvc = Mockito.mock(FormsManager.class);
+        acctTitleSvc = Mockito.mock(AcctTitleService.class);
 
-        List<String> mandatoryFieldList = getMandatoryPdfFields();
+        mockEJBContainer.addResource(ServiceFactory.class, factory);
+        mockEJBContainer.addResource(BookingManager.class, bookingSvc);
+        mockEJBContainer.addResource(FormsManager.class, formSvc);
+        mockEJBContainer.addResource(Reference.class, referenceSvc);
+        mockEJBContainer.addResource(AcctTitleService.class, acctTitleSvc);
 
-        // Validate mandatory fields
-        if (!validateFields(form, mandatoryFieldList)) {
-            System.out.println("Validation failed. PDF not saved or printed.");
-            return; // Exit without saving or printing
+        baoFormGenerationFHBAdapter = new BAOFormGenerationFHBAdapter();
+        baoFormGenerationFHBAdapter.setPropertyFile("fhb.properties");
+        baoFormGenerationFHBAdapter.setExternalPropertiesFactory(new ExternalPropertiesFactory());
+        mockEJBContainer.addResource(BAOFormGenerationFHBAdapter.class, baoFormGenerationFHBAdapter);
+        mockEJBContainer.injectResources(baoFormGenerationFHBAdapter);
+
+        try {
+            mockEJBContainer.initBean(baoFormGenerationFHBAdapter);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
 
-        // Save the PDF after validation passes
-        doc.save(new File("test_" + path));
-    } catch (IOException e) {
-        e.printStackTrace();
+    }
+
+    public Application getApplication(String applIdFileName){
+
+        InputStream jsonStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(applIdFileName+".json");
+        String json = new BufferedReader(
+                new InputStreamReader(jsonStream, StandardCharsets.UTF_8))
+                .lines()
+                .collect(Collectors.joining("\n"));
+        Application app  = new Application();
+        ObjectMapper Obj = new ObjectMapper();
+        /*try {
+            app = Obj.readValue(json,Application.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }*/
+        return app;
     }
 }
