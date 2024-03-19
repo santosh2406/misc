@@ -6,3 +6,53 @@ return "Rollover from Traditional" if: "Plan Type" "IRA" AND "RA Code" = "Rollov
 return "Regular or Spousal ROTH" if: "Plan Type"= "CONTRIB ROTH IRA" AND "RA Code" = "Roth Current Yr" OR "Roth Prior Yr"
 return "Transfer ROTH" if: "Plan Type"= "CONTRIB ROTH IRA" AND "RA Code" = "Internal Transfer Dep" OR "External Transfer Dep"
 return "Rollover from ROTH" if: "Plan Type"= "CONTRIB ROTH IRA" AND "RA Code" = "Rollover"
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+public class ConfigurationBasedReturn {
+
+    public static void main(String[] args) {
+        // Create a map to store conditions and their corresponding return values
+        Map<Set<String>, String> conditionMap = new HashMap<>();
+
+        // Define conditions and their corresponding return values
+        conditionMap.put(set("IRA", "Current Yr Contribution", "Prior Yr Contribution"), "Regular or Spousal Traditional");
+        conditionMap.put(set("IRA", "Internal Transfer Dep", "External Transfer Dep"), "Transfer Traditional");
+        conditionMap.put(set("IRA", "Rollover"), "Rollover from Traditional");
+        conditionMap.put(set("CONTRIB ROTH IRA", "Roth Current Yr", "Roth Prior Yr"), "Regular or Spousal ROTH");
+        conditionMap.put(set("CONTRIB ROTH IRA", "Internal Transfer Dep", "External Transfer Dep"), "Transfer ROTH");
+        conditionMap.put(set("CONTRIB ROTH IRA", "Rollover"), "Rollover from ROTH");
+
+        // Example usage
+        String planType = "IRA";
+        String raCode = "Rollover";
+
+        // Get the corresponding return value based on conditions
+        String result = getReturnValue(conditionMap, planType, raCode);
+        System.out.println("Result: " + result);
+    }
+
+    // Helper method to create a set of strings
+    public static Set<String> set(String... strings) {
+        Set<String> set = new HashSet<>();
+        for (String str : strings) {
+            set.add(str);
+        }
+        return set;
+    }
+
+    // Method to dynamically return value based on conditions
+    public static String getReturnValue(Map<Set<String>, String> conditionMap, String planType, String raCode) {
+        // Iterate through the conditions and find the matching one
+        for (Map.Entry<Set<String>, String> entry : conditionMap.entrySet()) {
+            Set<String> conditions = entry.getKey();
+            if (conditions.contains(planType) && conditions.contains(raCode)) {
+                return entry.getValue();
+            }
+        }
+        return "No matching condition found";
+    }
+}
