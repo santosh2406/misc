@@ -1,46 +1,8 @@
-@RunWith(Theories.class)
-public class TestBAOFormGeneration {
+write code to dynamically return values based on following condition in configuration basis
 
-    // Existing fields...
-
-    @Before
-    public void setUpBeforeClass() {
-        factory = Mockito.mock(ServiceFactory.class);
-        bookingSvc = Mockito.mock(BookingManager.class);
-        referenceSvc = Mockito.mock(Reference.class);
-        formSvc = Mockito.mock(FormsManager.class);
-        acctTitleSvc = Mockito.mock(AcctTitleService.class);
-
-        MockitoAnnotations.initMocks(this);
-
-        // Existing mock container initialization...
-
-        // Other setup code...
-
-    }
-
-    @Theory
-    public void testCertUbo(@FromDataPoints("CERT-UBO") Map<String, String> testData) {
-        try {
-            given(factory.getService(BookingManager.class)).willReturn(bookingSvc);
-            given(factory.getService(Reference.class)).willReturn(referenceSvc);
-            given(factory.getService(AcctTitleService.class)).willReturn(acctTitleSvc);
-            given(factory.getService(FormsManager.class)).willReturn(formSvc);
-
-            // Existing stubbing code...
-
-            RequestOptions options = new RequestOptions();
-            options.setReqUID(UUID.randomUUID().toString());
-
-            given(bookingSvc.getApplication(any(), any(), any())).willAnswer(invocationOnMock -> getApplication(testData.get(APPLICATIONID)));
-
-            // Rest of your test logic...
-
-        } catch (Throwable e) {
-            e.printStackTrace();
-            Assert.fail(e.toString());
-        }
-    }
-
-    // Existing methods...
-}
+return "Regular or Spousal Traditional" if: "Plan Type" ="IRA" AND From "RA Code" = "Current Yr Contribution" OR "Prior Yr Contribution"
+return "Transfer Traditional" if: "Plan Type"="IRA" AND "RA Code"= "Internal Transfer Dep" OR "External Transfer Dep"
+return "Rollover from Traditional" if: "Plan Type" "IRA" AND "RA Code" = "Rollover"
+return "Regular or Spousal ROTH" if: "Plan Type"= "CONTRIB ROTH IRA" AND "RA Code" = "Roth Current Yr" OR "Roth Prior Yr"
+return "Transfer ROTH" if: "Plan Type"= "CONTRIB ROTH IRA" AND "RA Code" = "Internal Transfer Dep" OR "External Transfer Dep"
+return "Rollover from ROTH" if: "Plan Type"= "CONTRIB ROTH IRA" AND "RA Code" = "Rollover"
