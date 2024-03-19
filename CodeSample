@@ -49,7 +49,7 @@ public class ConfigurationBasedReturn {
         // Iterate through the conditions and find the matching one
         for (Map.Entry<Set<String>, String> entry : conditionMap.entrySet()) {
             Set<String> conditions = entry.getKey();
-            if (conditions.contains(planType) && conditions.contains(raCode)) {
+            if (conditions.contains(planType) && (conditions.contains(raCode) || conditions.contains("OR"))) {
                 return entry.getValue();
             }
         }
