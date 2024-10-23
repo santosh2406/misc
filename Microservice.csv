@@ -1,0 +1,103 @@
+Question,Correct Answer
+A Backend For Frontend (BFF) sends a message to a single known queue. What kind of message is it likely to be?,A command
+"A company is implementing a microservice architecture for a digital transformation of a monolithic application. After decoupling services and creating a microservice approach, the company uses a Transaction Script pattern for some of the services. What strategic benefit would this provide?",It allows for better alignment of the database procedures with storage decisions.
+A decoupled service running in a cloud environment must handle increased load. You want to get the best possible performance increase for the least amount of money. What type of scaling do you choose?,Horizontal scaling
+A microservice receives commands asynchronously. How can you ensure that commands are not lost if the microservice is the victim of a database deadlock? ,End the service call without acknowledging the message
+"A subscriber polls an event feed, but the call fails. What happens?","The subscriber is unaffected and the call polls the event at a later time, as if it was a new event."
+A synchronous microservices communication changes to asynchronous messaging. What is the main problem that occurs because of that change?,Out-of-order messages
+"After authentication, what is a secure and efficient way to give every service access to a user's identity?",Store access information in tokens and exchange them between microservices.
+"Although decentralized data is fundamental to microservice architecture, building a centralized store of critical reference data is still necessary in larger organizations. What is the benefit of centralized reference data?",It provides a means for microservices to synchronize critical data and an audit log.
+"An engineering organization's decentralized governance gives teams the freedom to develop software components using different stacks. This does not mean that software development becomes an environment where anything goes, however. Which is an example of a global standard in this type of organization?",All teams should use a peer code review process.
+"For users who have the same authentication credentials in the same gateway, how would you restrict access to specific microservices and allow access to other microservices",Implement Identity Access Manager middleware to handle authorization across services
+How can a developer control inconsistencies that result from replaying events?,Enable other services to recognize that a given operation ran in the past with the same parameters.
+How can you enable microservice teams to release new code updates faster to test and production environments?,Set up continuous integration/continuous development (CI/CD) pipelines.
+How can you maintain an authenticated user state for stateless microservices?,Through session replication
+How do you structure a container application using runtime JavaScript integration?,Load each micro frontend in a <script> tag and provide each one with a <div> that it can mount into.
+How does a container application participate in authentication?,It invokes the identity provider
+How is domain logic organized within a Table Module?,One class per table within the database
+How would you address microservices monitoring to manage the complexity that this architecture raises?,"Cover all necessary application and platform metrics for monitoring, while accounting for the complexity of distributed microservices."
+"In Kubernetes, what is a service?",A set of pods that handle the same network requests
+"Microservices collaborate with each other over the network using potentially different data encoding protocols. Relevant collaborators within a monolith communicate in-memory. As a result, microservices have more communication failure points than in a monolith. How could you reduce the risk of bugs at these failure points?",Write more automated integration tests.
+"Service X is trying to listen to an event from service Y, but service Y is down. How can you manage this kind of failure?","Configure a ready event that triggers when service Y is restored, so the listening service, X, can continue working on the pending data."
+Two microservices must reference the Customer entity. What is likely to be true?,The microservices have different Customer data types.
+Two microservices subscribe to price change events. The microservices occasionally cache different prices for the same product and do not self-correct. Why?,They both follow the last-writer-wins strategy.
+What are the principles of reactive systems?,"Responsive, resilient, elastic, and message-driven"
+What are the tradeoffs of using Selenium to test microservices?,Tests are realistic but fragile.
+What component is responsible for moving the message in a pub/sub messaging architecture?,Event bus
+What does the domain centric principle for microservices suggest?,Microservices should represent a business function.
+What does the domain centric principle for microservices suggest?,Microservices should represent a business function.
+"What does the following JSON header represent?
+	{  
+	  ""typ"": ""JWT"",  
+	  ""alg"": ""HS256""
+	}",A JSON Web Token (JWT) with hash algorithm HS256
+What does the Transaction Script pattern use to organize business logic?,Procedures
+What effect does using microservices have on teams within an organization?,"The monitoring team must be able to function as a number of units that consist of, at most, five people rather than one large unit that consists of the whole team"
+What exchanges authentication and authorization information between services?,JSON Web Tokens (JWT)
+What is a cascading failure,The failure of one or a few services triggering the failure of other services
+What is a key difference between command handlers and query handlers in microservices?,"Query handlers only read data, whereas command handlers can also modify data."
+What is an idempotent operation?,An operation that produces the same result when called over and over
+What is the defense in depth principle?,"Layering a series of defensive mechanisms to protect valuable data and information, where if one mechanism fails, another steps up immediately to thwart an attack"
+What is the most significant drawback of implementing a data layer using a single database that multiple services share?,A single database does not satisfy the data storage and access requirements of all services
+What is the most significant drawback to synchronous microservice communication?,Temporal coupling
+What is the narrowest test scope that covers collaboration between two layers of the same microservice?,Integration test
+What is the narrowest test scope that covers the combined behavior of several services?,End-to-end tests
+What kind of organizational structure most effectively supports a microservices architecture?,Autonomous teams
+What level of micro frontend knowledge does the container application have?,It knows which micro frontends to integrate and where they appear.
+What makes maintaining data consistency between microservices a challenge?,Distributed transactions are not an option for many applications.
+What property of an operation prevents duplicate messages from having additional effects?,Idempotency
+What role does the Service layer play in a domain facade implementation approach?,It establishes a boundary and set of operations through which client layers interact with the application.
+What term describes external traffic within a microservices architecture?,North-south
+What tool can you use to implement role-based access control within your microservices?,JSON Web Tokens (JWT)
+"When applied to decomposing a monolith into microservices, branch by abstraction refers to what practice?",Introducing interfaces to decouple capabilities within the monolith prior to extraction
+"When decomposing a monolith application into microservices, what does vertical refer to with regards to the decoupling capabilities vertically practice?","The various layers of the monolith, such as user interface (UI), server-side business logic unit, and data store"
+When should you use synchronous communication between microservices? ,When querying data from the system of record
+Which data access pattern helps isolate the data store from the domain layer while unit testing a microservice?,Repository
+Which disaster recovery option provides the lowest recovery time objective (RTO) and recovery point objective (RPO)?,A multi-site active/active solution
+Which is a benefit of isolating microservices failures?,Preventing failures from cascading to other services
+Which kind of interaction between microservices is synchronous?,HTTP API
+Which kinds of tests benefit from mocks?,The microservice does not check its dependencies in its readiness probe.
+Which micro frontends technique relies on a tool such as Nginx?,Server-side templates
+Which monitoring type helps you establish a CPU threshold at which to raise an alarm for both a monolith and microservice deployment?,Predictive monitoring
+Which resiliency pattern adjusts the throughput of a service to optimize load?,Exponential backoff
+Which term describes communication between microservices?,East-west
+You add dependencies from newly formed microservices back to a poorly constructed monolith. What is a likely effect of this?,Releases cannot happen frequently because the microservices' release cycles are now tied to the monolith's slower release cycle.
+You are adding a new email notification microservice to an existing system that must send an email when a booking is made. The booking microservice already in place publishes an event as soon as the booking is done. What must you add to receive the event in the new microservice?,A subscription
+You are applying the circuit breaker and exponential backoff patterns to Representational State Transfer (REST) calls from one microservice to another. What problem could arise if the downstream service is not commutative?,Messages will not have their intended effect when arriving out of order
+You are building a microservice that calls another microservice synchronously. What pattern helps you apply the fail fast principle?,The circuit breaker pattern
+You are building a web application for a microservices architecture. How do you generate and validate tokens?,Generate a token from a single identity provider and validate in each Backend For Frontend.
+You are changing the contract on an asynchronous microservice. How can you leave the old version in place for backward compatibility?,Define a new message type for the new contract.
+You are creating a website that presents real-time financial exchange data aggregated from various microservices. What form of communication is most appropriate if results become obsolete in seconds?,Synchronous communication
+"You are decoupling a large monolith application into microservices. Multiple microservices and the monolith read and write to and from the same old data store, which prevents full decoupling. What is the next step?",Incorporate a data migration strategy that is appropriate for your context.
+You are deploying a new version of a microservice to fix some bugs. What change should you make to the microservice's API endpoints,Keep the endpoints unchanged
+You are designing a microservices architecture that uses command-query responsibility segregation (CQRS). What level of consistency can you expect?,Eventual consistency
+You are designing an experimental microservice for an unpredictable level of demand. Which deployment model should you use ?,Serverless functions
+"You are developing an enterprise application that must support a variety of different clients including desktop browsers, mobile browsers, and mobile applications. What is the benefit of a loosely coupled, collaborating services architecture?",It provides the ability to quickly release changes to a single service rather than deploying the entire application
+You are developing the exact same feature in a monolith and in a microservice. Why would the process be faster in the microservice?,Smaller codebase size means less time spent on activities such as refactoring and building
+You are diagnosing a Kubernetes microservices deployment. One particular microservice is susceptible to localized outages. What is the likely cause?,You incorrectly configured the topology spread constraints
+"You are diagnosing incorrect results in a microservice API. Whenever the problem occurs, the caller logs a retry. What is the likely cause?",The microservice is not idempotent.
+You are evaluating a microservice design that includes shopping and payment features. What improvement could you make?,Separate Payment Card Industry (PCI) data from the shopping microservice.
+You are evaluating a microservices design. One microservice allows a user to asynchronously manage tasks in projects that they are assigned to. What measure should you put in place for other microservices to call this microservice?,Attach a JSON Web Token (JWT) to the command messages.
+You are implementing the same new feature in a monolith and a microservice with no prior knowledge of the codebase for each. What generally takes significantly more time in a monolith? ,Reading code to determine potential reuses or to avoid breaking existing features
+You are in charge of enterprise architecture for a microservices solution. You want to use the optimal storage mechanism for each microservice. What policies do you implement?,Publish a list of approved data stores and define a review process for other solutions.
+You are maintaining a system of microservices. There is a high correlation between code changes in two microservices. What should you consider?,Analyze dependencies from other microservices to determine whether to merge the two.
+You are making a change that involves several rebuilds of the encompassing codebase written in a statically typed language. You are making the same change in a monolith and in a microservice. One aspect of the change is different between the monolith and the microservice which makes the process take longer. Which aspect is at fault? ,Codebase size
+You are modifying the contract for a microservice that your department owns. How can you minimize the effect on other departments within the organization?,Provide a new endpoint and handle the old version of the contract at the old endpoint.
+You are researching a successful attack on a microservices architecture. The system relies on OAuth 2.0 bearer tokens in message headers to secure asynchronous communication between microservices. How did the attackers bypass this protection?,A remote code execution attack
+You are using service discovery. A new requirement comes up where you must deregister a microservice when it is not available using a health check. Which registration type works best for this scenario?,Third-party registration
+You are writing a Representational State Transfer (REST) microservice that is accessible by a browser-based front end. Which strategy leads to cross-origin request problems?,Loading the host names from the service registry
+"You cut over from a monolith application to a microservices-based app. Shortly thereafter, end users around the globe complain that the web user interfaces (UIs) display communication problems when attempting to reach the servers. You did not change the web UIs when they communicated to the monolith. Neither technical nor business monitoring display any problems. What is most likely at fault?",The web UIs fail to communicate with the APIs because of service discovery issues
+You have a large microservices architecture that you must design to be reactive and non-blocking. How would you handle this requirement?,Base the microservices' communication on asynchronous message-passing.
+"You have a microservice for image processing. Because it handles dozens of high resolution images simultaneously, it needs a high throughput for processing. How would you monitor its performance?",Configure a key metric for bandwidth monitoring and apply automatic alerts whenever the metric reaches a certain percentage.
+You make a small code change in one area of a monolith. How does it affect the other areas of the monolith from a release perspective?,"Because the monolith releases as a whole, you must check all other areas for changes and review if any exist before proceeding with the release."
+"You migrate a monolithic application to microservices. Frontend availability decreases, leading to more frequent user-facing errors. What could be the cause?",The Backends For Frontends call the microservices synchronously.
+You must determine whether microservices are a good fit for your organization. What must you know to make a decision?,What business unit is responsible for your core domain
+You use event sourcing and upgraded to a microservice that affects the structure of events. What procedure should you follow when rolling out the upgrade?,Migrate your upgrade to all events in the events log then delete and rebuild persistent view models from history.
+You use the service instance per container microservices deployment pattern rather than the service instance per virtual machine (VM) deployment pattern. What is a benefit?,"In general, containers have faster startup times than VMs."
+You want to achieve high availability in the cloud without significantly increasing latency. What strategy should you choose?,Deploy redundant instances of each microservice to different availability zones.
+You want to make sure an API gateway pattern does not turn a microservices architecture into a monolithic service. What should you do?,Split the API gateway tier into multiple API gateways and apply the backend for front-end pattern.
+You want to quickly find changes to microservices that break key scenarios. What practice do you put in place?,Create a nightly build that deploys all services to the cloud and runs smoke tests.
+You want to run an out-of-process component test of a microservice that depends on an external service. What must you set up to isolate the dependency?,An API stub
+You work at a financial firm as a developer. You must change your team's the daily trading strategy. How does making this change in a microservice application compare to making it in a monolith app?,"With microservices, you do not need to figure out where to make the change because the relevant microservice is obvious. In a monolith, you must look for the right place to make the change using search mechanisms."
+You write an out-of-process component test that is applicable for both microservices and monoliths. Which activity is carried out in the test setup method?,Start the process under test
+Your continuous deployment pipeline releases defective code to production. Which is most appropriate way to restore faultless service to end users?,Have release rollback procedures in place.
