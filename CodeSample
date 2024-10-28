@@ -1,44 +1,90 @@
-{
-    "accountDetails": {
-        "facilityDetails": {
-            "facilityAccountName": "Test Facility",
-            "parentDealIdentifier": "0000000001",
-            "partyIdentifier": "00000001",
-            "lenderTypeCode": 123,
-            "currentBalance": 1500.00,
-            "maturityDate": "2025-10-10",
-            "loanDetails": [
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+public class JsonReadWriteExample {
+    public static void main(String[] args) {
+        // JSON string
+        String jsonString = """
                 {
-                    "loanAccountName": "Test Loan 1",
-                    "loanIdentifier": "000000001",
-                    "principalDue": 200.00,
-                    "interestDue": 100.00,
-                    "escrow": 50.00,
-                    "totalDue": 350.00
-                },
-                {
-                    "loanAccountName": "Test Loan 2",
-                    "loanIdentifier": "000000002",
-                    "principalDue": 300.00,
-                    "interestDue": 200.00,
-                    "escrow": 150.00,
-                    "totalDue": 650.00
+                    "accountDetails": {
+                        "facilityDetails": {
+                            "facilityAccountName": "Test Facility",
+                            "parentDealIdentifier": "0000000001",
+                            "partyIdentifier": "00000001",
+                            "lenderTypeCode": 123,
+                            "currentBalance": 1500.00,
+                            "maturityDate": "2025-10-10",
+                            "loanDetails": [
+                                {
+                                    "loanAccountName": "Test Loan 1",
+                                    "loanIdentifier": "000000001",
+                                    "principalDue": 200.00,
+                                    "interestDue": 100.00,
+                                    "escrow": 50.00,
+                                    "totalDue": 350.00
+                                },
+                                {
+                                    "loanAccountName": "Test Loan 2",
+                                    "loanIdentifier": "000000002",
+                                    "principalDue": 300.00,
+                                    "interestDue": 200.00,
+                                    "escrow": 150.00,
+                                    "totalDue": 650.00
+                                }
+                            ],
+                            "facilityFeeDetails": [
+                                {
+                                    "segmentIdentifier": "01",
+                                    "feeAmount": 300.00,
+                                    "feeDescription": "Test Fee Desc 1",
+                                    "incomeClassCode": "AA"
+                                },
+                                {
+                                    "segmentIdentifier": "02",
+                                    "feeAmount": 200.00,
+                                    "feeDescription": "Test Fee Desc 2",
+                                    "incomeClassCode": "BB"
+                                }
+                            ]
+                        }
+                    }
                 }
-            ],
-            "facilityFeeDetails": [
-                {
-                    "segmentIdentifier": "01",
-                    "feeAmount": 300.00,
-                    "feeDescription": "Test Fee Desc 1",
-                    "incomeClassCode": "AA"
-                },
-                {
-                    "segmentIdentifier": "02",
-                    "feeAmount": 200.00,
-                    "feeDescription": "Test Fee Desc 2",
-                    "incomeClassCode": "BB"
-                }
-            ]
+                """;
+
+        // Parsing JSON
+        JSONObject jsonObject = new JSONObject(jsonString);
+        JSONObject accountDetails = jsonObject.getJSONObject("accountDetails");
+        JSONObject facilityDetails = accountDetails.getJSONObject("facilityDetails");
+
+        // Read specific values
+        String facilityAccountName = facilityDetails.getString("facilityAccountName");
+        double currentBalance = facilityDetails.getDouble("currentBalance");
+        String maturityDate = facilityDetails.getString("maturityDate");
+
+        System.out.println("Facility Account Name: " + facilityAccountName);
+        System.out.println("Current Balance: " + currentBalance);
+        System.out.println("Maturity Date: " + maturityDate);
+
+        // Loop through loanDetails array
+        JSONArray loanDetailsArray = facilityDetails.getJSONArray("loanDetails");
+        for (int i = 0; i < loanDetailsArray.length(); i++) {
+            JSONObject loanDetail = loanDetailsArray.getJSONObject(i);
+            System.out.println("Loan Account Name: " + loanDetail.getString("loanAccountName"));
+            System.out.println("Total Due: " + loanDetail.getDouble("totalDue"));
         }
+
+        // Creating new JSON Object
+        JSONObject newJsonObject = new JSONObject();
+        JSONObject newAccountDetails = new JSONObject();
+        JSONObject newFacilityDetails = new JSONObject();
+
+        newFacilityDetails.put("facilityAccountName", "New Facility");
+        newFacilityDetails.put("currentBalance", 2000.00);
+        newFacilityDetails.put("maturityDate", "2026-10-10");
+
+        newAccountDetails.put("facilityDetails", newFacilityDetails);
+        newJsonObject.put("accountDetails", newAccountDetails);
+
+        System.out.println("New JSON Object: " + newJsonObject.toString(4)); // Pretty print
     }
 }
