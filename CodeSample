@@ -1,58 +1,44 @@
-write code to dynamically return values based on following condition in configuration basis
-
-return "Regular or Spousal Traditional" if: "Plan Type" ="IRA" AND From "RA Code" = "Current Yr Contribution" OR "Prior Yr Contribution"
-return "Transfer Traditional" if: "Plan Type"="IRA" AND "RA Code"= "Internal Transfer Dep" OR "External Transfer Dep"
-return "Rollover from Traditional" if: "Plan Type" "IRA" AND "RA Code" = "Rollover"
-return "Regular or Spousal ROTH" if: "Plan Type"= "CONTRIB ROTH IRA" AND "RA Code" = "Roth Current Yr" OR "Roth Prior Yr"
-return "Transfer ROTH" if: "Plan Type"= "CONTRIB ROTH IRA" AND "RA Code" = "Internal Transfer Dep" OR "External Transfer Dep"
-return "Rollover from ROTH" if: "Plan Type"= "CONTRIB ROTH IRA" AND "RA Code" = "Rollover"
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
-public class ConfigurationBasedReturn {
-
-    public static void main(String[] args) {
-        // Create a map to store conditions and their corresponding return values
-        Map<Set<String>, String> conditionMap = new HashMap<>();
-
-        // Define conditions and their corresponding return values
-        conditionMap.put(set("IRA", "Current Yr Contribution", "Prior Yr Contribution"), "Regular or Spousal Traditional");
-        conditionMap.put(set("IRA", "Internal Transfer Dep", "External Transfer Dep"), "Transfer Traditional");
-        conditionMap.put(set("IRA", "Rollover"), "Rollover from Traditional");
-        conditionMap.put(set("CONTRIB ROTH IRA", "Roth Current Yr", "Roth Prior Yr"), "Regular or Spousal ROTH");
-        conditionMap.put(set("CONTRIB ROTH IRA", "Internal Transfer Dep", "External Transfer Dep"), "Transfer ROTH");
-        conditionMap.put(set("CONTRIB ROTH IRA", "Rollover"), "Rollover from ROTH");
-
-        // Example usage
-        String planType = "IRA";
-        String raCode = "Rollover";
-
-        // Get the corresponding return value based on conditions
-        String result = getReturnValue(conditionMap, planType, raCode);
-        System.out.println("Result: " + result);
-    }
-
-    // Helper method to create a set of strings
-    public static Set<String> set(String... strings) {
-        Set<String> set = new HashSet<>();
-        for (String str : strings) {
-            set.add(str);
+{
+    "accountDetails": {
+        "facilityDetails": {
+            "facilityAccountName": "Test Facility",
+            "parentDealIdentifier": "0000000001",
+            "partyIdentifier": "00000001",
+            "lenderTypeCode": 123,
+            "currentBalance": 1500.00,
+            "maturityDate": "2025-10-10",
+            "loanDetails": [
+                {
+                    "loanAccountName": "Test Loan 1",
+                    "loanIdentifier": "000000001",
+                    "principalDue": 200.00,
+                    "interestDue": 100.00,
+                    "escrow": 50.00,
+                    "totalDue": 350.00
+                },
+                {
+                    "loanAccountName": "Test Loan 2",
+                    "loanIdentifier": "000000002",
+                    "principalDue": 300.00,
+                    "interestDue": 200.00,
+                    "escrow": 150.00,
+                    "totalDue": 650.00
+                }
+            ],
+            "facilityFeeDetails": [
+                {
+                    "segmentIdentifier": "01",
+                    "feeAmount": 300.00,
+                    "feeDescription": "Test Fee Desc 1",
+                    "incomeClassCode": "AA"
+                },
+                {
+                    "segmentIdentifier": "02",
+                    "feeAmount": 200.00,
+                    "feeDescription": "Test Fee Desc 2",
+                    "incomeClassCode": "BB"
+                }
+            ]
         }
-        return set;
-    }
-
-    // Method to dynamically return value based on conditions
-    public static String getReturnValue(Map<Set<String>, String> conditionMap, String planType, String raCode) {
-        // Iterate through the conditions and find the matching one
-        for (Map.Entry<Set<String>, String> entry : conditionMap.entrySet()) {
-            Set<String> conditions = entry.getKey();
-            if (conditions.contains(planType) && (conditions.contains(raCode) || conditions.contains("OR"))) {
-                return entry.getValue();
-            }
-        }
-        return "No matching condition found";
     }
 }
