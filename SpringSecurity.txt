@@ -1,0 +1,78 @@
+1: What is the advantage of using @PreAuthorize annotation instead of @Secured when implementing Spring Security on your Spring Data Rest API? 
+Correct: @PreAuthorize supports Spring Expression Language (SpEL) and provides expression-based access control.
+
+2: You are debugging an application with Spring Security and Cross Site Request Forgery (CSRF) protection is enabled. You notice that for every request, the _csrf token has the same value "1234". Why is this happening?
+Correct: The generateToken method from CsrfTokenRepository class is overridden to return a token with a static value.
+
+3. You are tasked with improving your team's Spring web application resistance to offline brute force password cracking attacks. How would you achieve this?
+Correct: By using BCrypt or SCrypt to hash stored passwords
+
+4. Which method would you use to store your application secrets (e.g. database credentials) in a distributed application that uses the Spring Security framework?
+Correct: Externalized configuration using a dedicated service
+
+5. How can you validate the email address given by a user when they are registering an account?
+Correct: By sending an email containing a verification link
+
+6. What is an advantage of using BCrypt to store passwords over SHA-256?
+Correct: BCrypt provides greater resistance to brute force attacks.
+
+7. What is the effect of adding @CrossOrigin(origins = "*") to your Spring Data REST API controller methods?
+Correct: It would permit all websites to be able to call your REST API from the web browser.
+
+8. What cryptographic protocol does HTTPS use to protect your application when using Spring Security Framework?
+Correct: Transport Layer Security (TLS)
+
+9. Which is the minimum set of dependencies you need to add for enabling Spring Security into a Spring Data Rest API project for authentication?
+Correct: spring-security-web, spring-security-config
+
+10. You are testing a Spring application for security vulnerabilities and you notice that the certificate passwords are hardcoded in clear text. Which solution would you adopt to solve this security issue?
+Correct: Externalize the configuration in a distributed system.
+
+11. You have an application with Spring Security and OAuth2 configuration enabled and want to use GitHub for authentication. You create a new GitHub app, but when you boot up the application, the default login form appears. What else do you need to do in order to be able to login directly with GitHub?
+Correct: Add spring.security.oauth2.client.registration.github.clientId and spring.security.oauth2.client.registration.github.clientSecret to the application.properties.
+
+12. The following Spring configuration is being used to authenticate requests to a Spring application:
+protected void configure(HttpSecurity http) throws Exception {
+    http.authorizeRequests()
+      .antMatchers("/**")
+      .hasRole("USER")
+      .and()
+      .httpBasic();
+}
+However users are being presented with a dialog asking for a username and password rather than being sent to the login form. What needs to be changed in the configuration?
+Correct: httpBasic() should be replaced with formLogin()
+
+13. You notice "myFile.txt" appeared on your filesystem and realize that you have been the victim of an attack. Your text.jsp file contains <spring:eval expression="${param.test} var="test"> and you find out that the hacker has executed the following query:http://localhost:8080/test?test=T(java.lang.Runtime).getRuntime().exec("touch%20myFile.txt")
+What kind of attack happened?
+Correct: Expression Language Injection
+
+14. What do you need to do to automatically register a user into your application after a successful login using OAuth?
+Correct: Implement AuthenticationSuccessHandler and override onAuthenticationSuccess() to save the user details.
+
+15. You have an application with Spring Security and Cross Site Request Forgery (CSRF) enabled. Throughout the application you only use POST, PUT, or DELETE to change the state. What else do you need to do to make sure you are protected against CSRF attacks?
+Correct: Include the CSRF token in the request.
+
+16. Using Spring Security, how can you restrict access to URLs starting with /api/ to fully authenticated users, and allow only users with the role ROLE_ADMIN to access URLs starting with /api/admin/?
+Correct: protected void configure(HttpSecurity http) throws Exception {
+    http.authorizeRequests()
+      .antMatchers("/api/**").fullyAuthenticated()
+      .antMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN");
+}
+
+17. You are using a custom UserDetailsService to integrate a Spring application with an existing authentication database. Upon testing your application you are unable to authenticate. The password is correct as you can login via other systems with it. What is the most likely cause of the authentication failure in your application?
+Correct: The PasswordEncoder is not using the same message digest algorithm as the stored passwords.
+
+18. Your team's Spring application integrates with a third party system at the database level. Given the highly sensitive information stored within the third party system your application must ensure that fine grained access controls are implemented and follow the access controls stored by the third party application. The following table is in the database capturing access controls:
+CREATE TABLE grants (
+    USER_ID BIGINT,
+    OBJECT_ID BIGINT,
+    PERMISSIONS CHAR[],
+    PRIMARY KEY (USER_ID, OBJECT_ID)
+)
+Correct: Make use of the hasPermission SpEL function and implement a custom PermissionEvaluator.
+
+19. Your team's Spring based web application has recently undergone penetration testing, and the report highlighted that the application is storing user passwords using unsalted SHA-256 hashes. What action would you take to address these failings?
+Correct: Move to using strong password hashes such as BCrypt or SCrypt.
+
+20. You want to configure authentication in Spring Security Framework. What is the first thing you need to do?
+Correct: Create a class that extends WebSecurityConfigurerAdapter
