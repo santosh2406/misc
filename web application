@@ -1,0 +1,61 @@
+1. Which process helps prevent security misconfiguration?
+Correct: An automated hardening process
+
+2. When cookies serve as session state identifiers, what can you conclude about sessions and their lifetimes?
+The server is the only thing that can invalidate sessions.
+
+3. A website includes content from example.com and globomantics.com. How can a developer set the origin to globomantics.com?
+By making the first request to globomantics.com
+
+4. What does key length proportionally affect with regards to an algorithm’s security?
+The upper-bound limit on an algorithm's security
+
+5. What is the best defense against cross-site scripting vulnerabilities?
+Encode the output based on the context.
+
+6. How would you determine if two similar looking values are in canonicalized form?
+By canonicalizing the values and comparing the output to the original values
+
+7. What is an example of a risk found on the 2021 Open Web Application Security Project (OWASP) Top 10 list?
+Security logging and monitoring failures
+
+8. What is character escaping?
+Invoking an alternative interpretation of certain characters
+
+9. A company's HTML entity encoder encodes all user input. Where can a developer safely use that output in an HTML page?
+Only inside normal HTML tags such as div, p, and b
+
+10. What is an example of a valid start line of an HTTP web server response?
+HTTP/1.0 400 Bad Request
+
+11. A website serves its content over a secure connection. Users log on using the /logon/ path, after which they can access the entire site. What should you use for cookie parameters?
+HttpOnly; Secure; path=/
+
+12. You want to make sure that your access controls are fully functional and you want to test for open ports in your network. What method should you use to test this?
+Manual (penetration) testing
+
+13. An organization hires a new development team to implement business validation rules for a web application. Which type of documentation should provide the new employees with the latest information on the web application?
+The technical documentation
+
+14. What is a feature of password-based key derivation functions?
+They have a sliding computational cost.
+
+15. Your application uses YAML serialization format. What is a valid reason for your development team to look at Open Web Application Security Project (OWASP) A8: Insecure Deserialization?
+Insecure de-serialization is independent of the format.
+
+16. An application deals with sensitive information. After a serious security breach, the development team changes the lifespan of keys. Which factors should the team consider when deciding on a new lifespan?
+The volume of information flow, the security life of the data, and the key rollover method
+
+17. Which aspect of a system can reliably manage the state of an application?
+The application itself
+
+18. A company plans to classify weaknesses that it finds in its applications. Which list best fits its needs?
+The Common Weakness Enumeration
+
+19. A developer wants to verify whether a logged-on client can request a sensitive page. Which aspect of an HTTP request can they use?
+Cookie
+
+20. An application consists of several microservices hosted in the cloud. The services deploy daily on fresh cloud instances. You want to improve the security of the application. How would you mitigate security misconfiguration vulnerabilities?
+Ensure that each deployment uses a hardened base instance.
+
+
