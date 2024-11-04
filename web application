@@ -58,4 +58,79 @@ Cookie
 20. An application consists of several microservices hosted in the cloud. The services deploy daily on fresh cloud instances. You want to improve the security of the application. How would you mitigate security misconfiguration vulnerabilities?
 Ensure that each deployment uses a hardened base instance.
 
+21. When is a cross-site scripting vulnerability necessary for performing a cross-site request forgery (CSRF) attack?
+When no measures to mitigate the effects of CSRF are in place
 
+22. What is the intention of a secure password reset process?
+To ensure that the password reset process cannot be abused
+
+23. How can you prevent most access control vulnerabilities?
+By using centralized access control checks
+
+24. The client receives a message or file. What sets the HTTP security headers?
+The server
+
+25. You decrypt your private Secure Shell (SSH) key before logging on to a server that uses public key authentication. Why is this not multi-factor authentication?
+Because you only need the private key file
+
+26. What is a limitation of XML External Entity (XXE) attacks?
+They can only obtain files or responses that contain “valid” XML.
+
+27. What is data serialization?
+Converting an object into a byte stream
+
+28. How would you associate a document type definition with an XML document?
+Using a document type declaration tag (DOCTYPE)
+
+29. A development team wants to write secure code. According to the Open Web Application Security Project (OWASP) Proactive Controls, what should the team do first?
+Define its security requirements.
+
+30. What is input validation?
+Validating whether the input matches a given format
+
+31.  A server attempts to parse the following XML file:
+<?xml version="1.0"?>
+<!DOCTYPE foo [
+	<!ENTITY lol "lol">
+	<!ENTITY lol2 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">
+	<!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;">
+	<!ENTITY lol4 "&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;">
+	<!ENTITY lol5 "&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;">
+	<!ENTITY lol6 "&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;">
+	<!ENTITY lol7 "&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;">
+	<!ENTITY lol8 "&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;">
+	<!ENTITY lol9 "&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8">
+
+]>
+<foo>&lol9;</foo>
+What is the outcome?
+
+Correct:It overloads the memory of the XML parser with expanding XML entities. 
+
+32. A web server redirects visitors of the outside.html page to an external domain based on user input. When is this an unvalidated redirect?
+When the web server does not validate the request
+
+33. What is a denial-of-service attack?
+An attempt to deplete the target's resources to render it unusable
+
+34. An ecommerce company wants to protect the integrity and confidentiality of its incoming website traffic. What should it use or implement?
+Transport Layer Security
+
+35. Which is a cross-domain policy file?
+Correct: 
+<?xml version="1.0" ?>
+<cross-domain-policy>
+<allow-access-from domain="globomantics.com" />
+</cross-domain-policy>
+
+36. Which symmetric encryption algorithm should you work with for general use?
+The Advanced Encryption Standard (AES)
+
+37. You want to securely implement session management. What should you do?
+Verify that sessions are invalidated when the user logs out.
+
+38. Your project team has a directive to switch from manual to automated software security. As the team lead, what is the first step you should take?
+Analyze all test cases and decide which ones to automate and which to not automate.
+
+39. How can you protect against broken access control vulnerabilities?
+Apply the principle of least privilege.
