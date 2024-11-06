@@ -1,90 +1,81 @@
-import org.json.JSONArray;
-import org.json.JSONObject;
+1. What does the Transaction script pattern use to organize business logic?
+Ans: Procedures
 
-public class JsonReadWriteExample {
-    public static void main(String[] args) {
-        // JSON string
-        String jsonString = """
-                {
-                    "accountDetails": {
-                        "facilityDetails": {
-                            "facilityAccountName": "Test Facility",
-                            "parentDealIdentifier": "0000000001",
-                            "partyIdentifier": "00000001",
-                            "lenderTypeCode": 123,
-                            "currentBalance": 1500.00,
-                            "maturityDate": "2025-10-10",
-                            "loanDetails": [
-                                {
-                                    "loanAccountName": "Test Loan 1",
-                                    "loanIdentifier": "000000001",
-                                    "principalDue": 200.00,
-                                    "interestDue": 100.00,
-                                    "escrow": 50.00,
-                                    "totalDue": 350.00
-                                },
-                                {
-                                    "loanAccountName": "Test Loan 2",
-                                    "loanIdentifier": "000000002",
-                                    "principalDue": 300.00,
-                                    "interestDue": 200.00,
-                                    "escrow": 150.00,
-                                    "totalDue": 650.00
-                                }
-                            ],
-                            "facilityFeeDetails": [
-                                {
-                                    "segmentIdentifier": "01",
-                                    "feeAmount": 300.00,
-                                    "feeDescription": "Test Fee Desc 1",
-                                    "incomeClassCode": "AA"
-                                },
-                                {
-                                    "segmentIdentifier": "02",
-                                    "feeAmount": 200.00,
-                                    "feeDescription": "Test Fee Desc 2",
-                                    "incomeClassCode": "BB"
-                                }
-                            ]
-                        }
-                    }
-                }
-                """;
+2. You are overseeing the decomposition of a product sales monolith into microservices. The search team cannot release the latest version of its microservice until the catalog team finishes its upgrade to the monolith. What is the likely root cause of the issue?
+Ans: The search microservice is not vertically decoupled from the monolith
 
-        // Parsing JSON
-        JSONObject jsonObject = new JSONObject(jsonString);
-        JSONObject accountDetails = jsonObject.getJSONObject("accountDetails");
-        JSONObject facilityDetails = accountDetails.getJSONObject("facilityDetails");
+3. You are deploying a new version of a microservice to fix some bugs. What change should you make to the microservice's API endpoints?
+Ans: Keep the endpoints unchanged
 
-        // Read specific values
-        String facilityAccountName = facilityDetails.getString("facilityAccountName");
-        double currentBalance = facilityDetails.getDouble("currentBalance");
-        String maturityDate = facilityDetails.getString("maturityDate");
+4. Which term describes communication between microservices within a distributed system?
+Ans: Peer-to-peer
 
-        System.out.println("Facility Account Name: " + facilityAccountName);
-        System.out.println("Current Balance: " + currentBalance);
-        System.out.println("Maturity Date: " + maturityDate);
+5. You are designing a sales order microservice. It must reference products from the product catalog microservice. How do you model the relationship?
+Ans: Define a Product table synchronized by stock keeping unit (SKU) and use its Product ID as a foreign key.
 
-        // Loop through loanDetails array
-        JSONArray loanDetailsArray = facilityDetails.getJSONArray("loanDetails");
-        for (int i = 0; i < loanDetailsArray.length(); i++) {
-            JSONObject loanDetail = loanDetailsArray.getJSONObject(i);
-            System.out.println("Loan Account Name: " + loanDetail.getString("loanAccountName"));
-            System.out.println("Total Due: " + loanDetail.getDouble("totalDue"));
-        }
+6. What term describes external traffic within a microservices architecture?
+Ans: North-South
 
-        // Creating new JSON Object
-        JSONObject newJsonObject = new JSONObject();
-        JSONObject newAccountDetails = new JSONObject();
-        JSONObject newFacilityDetails = new JSONObject();
+7. You are designing a microservices architecture where one microservice handles asynchronous task management within projects. To secure communication between this microservice and others, what should you do?
+Ans: Attach a JSON Web Token (JWT) to the command messages to authenticate and authorize requests.
 
-        newFacilityDetails.put("facilityAccountName", "New Facility");
-        newFacilityDetails.put("currentBalance", 2000.00);
-        newFacilityDetails.put("maturityDate", "2026-10-10");
+8. You are designing a microservice that responds to events separated by days or weeks. How should it recover from failures?
+Ans: By running compensating transactions
 
-        newAccountDetails.put("facilityDetails", newFacilityDetails);
-        newJsonObject.put("accountDetails", newAccountDetails);
+9. An engineering organization with decentralized governance allows teams the freedom to develop software components using different technology stacks. There are still global standards that all teams must follow, however. Which is an example of such a global standard in this type of organization?
+Ans: All teams must use a peer code review process
 
-        System.out.println("New JSON Object: " + newJsonObject.toString(4)); // Pretty print
-    }
-}
+10. You are researching a successful attack on a microservices architecture. The system relies on OAuth 2.0 bearer tokens in message headers to secure asynchronous communication between microservices. How did the attackers bypass this protection?
+Ans: Use person-in-the-middle attack
+
+11. You are designing a microservice upgrade to offer a new feature on an existing endpoint. How do you enable gradual adoption?
+Ans: Add an optional property to the request  
+
+12. You are writing a microservice that needs information from another service to complete a task. You apply the circuit breaker pattern. What additional mechanism should you implement to improve the system's resilience and performance during service outages?
+Ans: Retry logic
+
+13. You are analyzing the messages flowing between two microservices. Both the producer and the consumer address the queue by name. What kind of messages are they exchanging?
+Ans: Commands
+
+14. You are using service discovery. A new requirement comes up where you must deregister a microservice automatically when it is not available using a health check. Which registration type works best for this scenario?
+Ans: Self registration
+
+15. What is a tradeoff that comes with decentralized technical governance?
+Ans: The solution gradually upgrades its technology base over time, but is less consistent.
+
+16. A microservice publishes events to subscribers, each of which has competing consumers. How should you arrange the exchanges and queues?
+Ans: Allocate one fan-out exchange to the publisher and one queue per subscriber.
+
+17. You are designing an experimental microservice for an unpredictable level of demand. Which deployment model should you use?
+Ans: Serverless functions
+
+18. You are troubleshooting a microservices architecture. Instances of one service occasionally fail without causing errors. When a new instance starts up, however, API calls to the service intermittently fail for a short time. Why?
+Ans: The microservice does not check its dependencies in its readiness probe.
+
+19. You are writing a Representational State Transfer (REST) microservice that is accessible by a browser-based front end. Which strategy leads to cross-origin request problems?
+Ans: Loading the host names from the service registry
+
+20. What is the most significant drawback of implementing a data layer using a single database that multiple services share?
+Ans: A single database does not satisfy the data storage and access requirements of all services
+
+21. You migrate a monolithic application to microservices. Frontend availability decreases, leading to more frequent user-facing errors. What could be the cause?
+Ans: The Backends For Frontends call the microservices synchronously.
+
+22. A call to a micro service API times out. What does the caller typically know about the request?
+Ans: The server did not receive a response within the expected time frame
+
+23. You are diagnosing a micro frontend's application. The first page takes longer to load than a comparable web app. What is the cause?
+Ans: Each micro frontend bundles its framework instead of sharing assets.
+
+24. You are changing the contract on an asynchronous microservice. How can you leave the old version in place for backward compatibility?
+Ans: Define a new message type for the new contract. 
+
+25. You must manage certificates to secure communication between microservices in a technology-agnostic environment. How would you accomplish this?
+Ans: Use a service mesh to handle certificate management and encryption.
+
+26. How does integration testing microservices differ from integration testing a monolith?
+Ans: Microservice integration tests often require interaction with actual external services, whereas monolith integration tests can use mocked services or components.
+
+27. Your team spends several hours each day on user interface (UI)-based tests. What strategy can help reduce the time spent on these tests and improve testing efficiency?
+Ans: Implement API testing for the Backend For Frontend (BFF) layer to ensure that backend services are correctly integrated.
+
