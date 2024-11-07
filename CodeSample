@@ -1,81 +1,72 @@
-1. What does the Transaction script pattern use to organize business logic?
-Ans: Procedures
+Which of the following is a standard for user authentication using OAuth?
+Ans: OpenID Connect
+How can a Spring application mitigate online brute force password attacks?
+Ans : By rate limiting authentication attempts
+You are investigating a data leak in your company's address book Spring application. The controller method below is responsible for returning the list of Contacts that are within a team. However not all users of the application should be able to see all Contacts nor should they be able to see all Teams
+Ans : @PreAuthorize("hasRole('ROLE_USER') and hasPermission(#team, 'read')")
+@PostFilter("hasPermission(filterObject, 'read')")
+ 
+Which Spring Security annotation is used to configure the login functionality using OAuth?
+Ans: @EnableWebSecurity
+What do you need to have in the following Spring Security configuration method in order to register a user after a successful login with OAuth?
+@Override
+protected void configure(HttpSecurity http) throws Exception {} 
+Ans: http.oauth2Login().successHandler(...);
 
-2. You are overseeing the decomposition of a product sales monolith into microservices. The search team cannot release the latest version of its microservice until the catalog team finishes its upgrade to the monolith. What is the likely root cause of the issue?
-Ans: The search microservice is not vertically decoupled from the monolith
+You are building an application that holds sensitive data (e.g social security numbers). You aim to avoid threats that occur when clients accept access tokens from sources other than intentional requests to a token endpoint. Which protocol would you chose for authentication?
+Ans: OAuth 1.0a
+What does your client application (Spring Security + OAuth2) use to obtain an access token from the Authorization Server (e.g GitHub) when you log in?
+Ans: Authorization Code Grant
+When should you use the Cross Site Request Forgery (CSRF) protection mechanism provided by Spring Security Framework?
+Ans: For any request made by normal users that could be processed by a browser.
 
-3. You are deploying a new version of a microservice to fix some bugs. What change should you make to the microservice's API endpoints?
-Ans: Keep the endpoints unchanged
+How does a Cross Site Request Forgery (CSRF) attack work?
+Ans : The victim unknowingly submits a malicious web request to a website where the victim has privileged access to.
+ 
+What would you use to prevent a Structured Query Language (SQL) Injection attack by forcing the developer to first define all the SQL code and then passing each parameter to the query? 
 
-4. Which term describes communication between microservices within a distributed system?
-Ans: Peer-to-peer
+Ans: Query parameterization
+What class needs to be configured in order to configure authentication in Spring Security?
+Ans: AuthenticationManager
 
-5. You are designing a sales order microservice. It must reference products from the product catalog microservice. How do you model the relationship?
-Ans: Define a Product table synchronized by stock keeping unit (SKU) and use its Product ID as a foreign key.
+What do you need to write in the below Spring Security configuration method in order to only allow admins to save a new User using the Spring Data Rest API endpoint "/users" and everybody else to see the list of User entries using the same endpoint?
+@Override
+    protected void configure(HttpSecurity http) throws Exception {
 
-6. What term describes external traffic within a microservices architecture?
-Ans: North-South
+} 
+Ans : http.authorizeRequests().antMatchers(HttpMethod.POST, "/users").hasRole("ROLE_ADMIN"); 
+The following Spring configuration is being used to authenticate requests to a Spring application:
+protected void configure(HttpSecurity http) throws Exception {
+    http.authorizeRequests()
+      .antMatchers("/**")
+      .hasRole("USER")
+      .and()
+      .httpBasic();
+}
+Ans: httpBasic() should be replaced with formLogin()
+What is the name of the header that Spring Security Framework will add by default to instruct browsers to automatically use HTTPS for future requests?
+Ans: Strict-Transport-Security
+A browser detects an XSS attack and attempts to change the content in order to still be able to render everything, however this replacement becomes a XSS vulnerability in itself. How would you implement the following Spring Security configure method to block Cross-site scripting?  
+@Override
+protected void configure(HttpSecurity http) throws Exception {}
+Ans : http.headers().xssProtection();
 
-7. You are designing a microservices architecture where one microservice handles asynchronous task management within projects. To secure communication between this microservice and others, what should you do?
-Ans: Attach a JSON Web Token (JWT) to the command messages to authenticate and authorize requests.
-
-8. You are designing a microservice that responds to events separated by days or weeks. How should it recover from failures?
-Ans: By running compensating transactions
-
-9. An engineering organization with decentralized governance allows teams the freedom to develop software components using different technology stacks. There are still global standards that all teams must follow, however. Which is an example of such a global standard in this type of organization?
-Ans: All teams must use a peer code review process
-
-10. You are researching a successful attack on a microservices architecture. The system relies on OAuth 2.0 bearer tokens in message headers to secure asynchronous communication between microservices. How did the attackers bypass this protection?
-Ans: Use person-in-the-middle attack
-
-11. You are designing a microservice upgrade to offer a new feature on an existing endpoint. How do you enable gradual adoption?
-Ans: Add an optional property to the request  
-
-12. You are writing a microservice that needs information from another service to complete a task. You apply the circuit breaker pattern. What additional mechanism should you implement to improve the system's resilience and performance during service outages?
-Ans: Retry logic
-
-13. You are analyzing the messages flowing between two microservices. Both the producer and the consumer address the queue by name. What kind of messages are they exchanging?
-Ans: Commands
-
-14. You are using service discovery. A new requirement comes up where you must deregister a microservice automatically when it is not available using a health check. Which registration type works best for this scenario?
-Ans: Self registration
-
-15. What is a tradeoff that comes with decentralized technical governance?
-Ans: The solution gradually upgrades its technology base over time, but is less consistent.
-
-16. A microservice publishes events to subscribers, each of which has competing consumers. How should you arrange the exchanges and queues?
-Ans: Allocate one fan-out exchange to the publisher and one queue per subscriber.
-
-17. You are designing an experimental microservice for an unpredictable level of demand. Which deployment model should you use?
-Ans: Serverless functions
-
-18. You are troubleshooting a microservices architecture. Instances of one service occasionally fail without causing errors. When a new instance starts up, however, API calls to the service intermittently fail for a short time. Why?
-Ans: The microservice does not check its dependencies in its readiness probe.
-
-19. You are writing a Representational State Transfer (REST) microservice that is accessible by a browser-based front end. Which strategy leads to cross-origin request problems?
-Ans: Loading the host names from the service registry
-
-20. What is the most significant drawback of implementing a data layer using a single database that multiple services share?
-Ans: A single database does not satisfy the data storage and access requirements of all services
-
-21. You migrate a monolithic application to microservices. Frontend availability decreases, leading to more frequent user-facing errors. What could be the cause?
-Ans: The Backends For Frontends call the microservices synchronously.
-
-22. A call to a micro service API times out. What does the caller typically know about the request?
-Ans: The server did not receive a response within the expected time frame
-
-23. You are diagnosing a micro frontend's application. The first page takes longer to load than a comparable web app. What is the cause?
-Ans: Each micro frontend bundles its framework instead of sharing assets.
-
-24. You are changing the contract on an asynchronous microservice. How can you leave the old version in place for backward compatibility?
-Ans: Define a new message type for the new contract. 
-
-25. You must manage certificates to secure communication between microservices in a technology-agnostic environment. How would you accomplish this?
-Ans: Use a service mesh to handle certificate management and encryption.
-
-26. How does integration testing microservices differ from integration testing a monolith?
-Ans: Microservice integration tests often require interaction with actual external services, whereas monolith integration tests can use mocked services or components.
-
-27. Your team spends several hours each day on user interface (UI)-based tests. What strategy can help reduce the time spent on these tests and improve testing efficiency?
-Ans: Implement API testing for the Backend For Frontend (BFF) layer to ensure that backend services are correctly integrated.
-
+When using the JDBC based authentication provided by Spring Security, how can you use a custom database schema?
+Ans: By configuring the SQL needed to look up users
+How does Spring Security help prevent Injection attacks?
+Ans :By validating user input and escaping potentially dangerous characters
+When using the following Spring Security annotation: @PreAuthorize("hasPermission(#contact, 'admin')") what needs to be configured in the Spring application?
+Ans: A PermissionEvaluator should be registered with the DefaultMethodSecurityExpressionHandler.
+What kind of attack can be done after a successful SQL Injection that will bypass password checks?
+Ans Denial-of-Service (DoS) attack
+You are investigating why the following user uid=bill,ou=accounts,dc=springframework,dc=org cannot authenticate with the Spring application your team maintains. The Spring application uses the following configuration to authenticate with Microsoft Active Directory:
+public void configure(AuthenticationManagerBuilder auth) throws Exception {
+    auth
+      .ldapAuthentication()
+        .userDnPatterns("uid={0},ou=people")
+        .contextSource()
+          .url("ldap://localhost:8389/dc=springframework,dc=org");
+}
+Ans The application should set a userSearchFilter and configure a managerDn and managerPassword to enable searching for the user.
+You want to get the authorities of an authenticated user in a Spring controller. The user is passed using the API of the Authentication class. You notice that you are unable to call the getAuthorities() method because the Spring Security principal is retrieved as an Object type. What can you do to get the authorities of this authenticated user?
+Ans Cast the principal to a UserDetails instance and call the getAuthorities() method.
