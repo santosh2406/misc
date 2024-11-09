@@ -1,0 +1,40 @@
+Given the following files:
+
+ui-config.yaml
+color.good=purple
+color.bad=yellow
+allow.textmode=true
+game-config.yaml
+enemies=aliens
+lives=3
+A user entered the following command in a Kubernetes command-line interface (CLI):
+kubectl create configmap "training-game-config" --from-file=ui.properties="./ui-config.yaml" --from-file="./game-config.yaml" --from-literal=secret.code=secret.code.lives=30
+What would the resulting ConfigMap object look like?
+
+Ans:
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: training-game-config
+data:  
+  ui.properties: |
+    color.good=purple
+    color.bad=yellow
+    allow.textmode=true
+  game-config.yaml: |
+    enemies=aliens
+    lives=3
+  secret.code: secret.code.lives=30
+
+2. Your team uses kubectl to manage all aspects of your company's Kubernetes deployment. You are onboarding several DevOps engineers on the team who will take over the day-to-day management of simple tasks related to deployments. Which solution is most appropriate and will help your company scale?
+Ans: The updated kubectl command structure 
+
+3.  You used the hostPath PersistentVolume (PV) type to test a single node. Which type will you use to test multiple node clusters?
+Ans: local
+
+4. Which is a valid label value?
+Ans: An empty value
+
+5. As a namespace administrator, you need ultimate control over deployment security, but must allow your developers to configure within a range. How can you do this?
+Ans: Implement a security policy on the cluster and use securityContext in deployments as normal.
+
