@@ -58,7 +58,7 @@ Cookie
 20. An application consists of several microservices hosted in the cloud. The services deploy daily on fresh cloud instances. You want to improve the security of the application. How would you mitigate security misconfiguration vulnerabilities?
 Ensure that each deployment uses a hardened base instance.
 
----------------------------------------------
+===============================================================================================================
 1. You are building a modern application that holds sensitive data (such as social security numbers). You aim to avoid threats that occur when clients accept access tokens from sources other than intentional requests to a token endpoint. Which protocol would you chose for authentication?
 Ans: OAuth 2.0 with HTTPS and relevant grant types
 
@@ -91,3 +91,40 @@ Ans: DaoAuthenticationProvider
 Ans: @PreAuthorize("#name == authentication.name")
 
 ==============================================================================================================================
+
+1: What would you implement the following Spring Security configure method in order to redirect the user to an access-denied page in case they try to access an unauthorized resource?
+@Override
+protected void configure(HttpSecurity http) throws Exception {}
+Ans: http.authorizeRequests().permitAll().and().accessDeniedPage("/accessDenied.jsp");[True]
+
+
+2:After adding Spring Security dependency to the classpath, the access to any URL other than the login form is restricted. What does Spring Security use to add mandatory authentication?
+Ans: Filter
+
+3. How can you secure the following controller method so that it can only be invoked by users that are a member of the admin  role using Spring Security?
+public void deleteAccount(String accountId) {
+}
+Ans: @PreAuthorize("hasRole('ROLE_ADMIN')")
+public void deleteAccount(String accountId) {
+}
+
+
+4: What is the default behavior for Cache Control security header included with the Spring Security Framework?
+Ans: Disable caching to protect user's content
+
+5. You are tasked with adding two factor authentication to a Spring application. How can you do this?
+Ans: Implement a custom AuthenticationDetailsSource  and AuthenticationProvider  which will capture and verify the second authentication factor.
+
+6. Which browser security headers included with Spring Security Framework reduce the possibility of on-path attacks?
+Ans. HTTP Strict Transport Security (HSTS)
+
+
+7. You are debugging a Spring application that has a global exception handler class. That class contains the annotations @ControllerAdvice and @ExceptionHandler. You notice that all the exceptions thrown by Spring MVC are caught, but the ones thrown by Spring Security are not. What might be the issue?
+Ans: The exceptions thrown by Spring Security custom filters run before the controller methods are invoked.
+
+8: What is the name of the class that deals with AccessDeniedException  and AuthenticationException  in Spring Security Framework?
+c. org.springframework.security.web.access.ExceptionTranslationFilter
+
+8. How can you mitigate credential stuffing attacks against a Spring application?
+Ans. Can be any one[Multi-Factor Auth
+
