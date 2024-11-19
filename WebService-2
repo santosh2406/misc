@@ -1,0 +1,76 @@
+1. What is character escaping?
+Ans: Invoking an alternative interpretation of certain characters
+
+2. What is the difference between the Open Web Application Security Project (OWASP) Top 10 and the Common Weakness Enumeration (CWE)?
+Ans: The OWASP Top 10 is a ranking, whereas the CWE is a collection.
+
+3. A web server sets a cookie over a secure connection. When is the cookie value readable using JavaScript served over an insecure connection?
+Ans: If the cookie lacks the HttpOnly and Secure flag
+
+4. An application has 12 known exploits, 10 known weaknesses, and 11 known vulnerabilities. Which statement is true?
+Ans: There are at least 11 weaknesses.
+
+5. A website includes content from example.com and globomantics.com. How can a developer set the origin to globomantics.com?
+Ans: By making the first request to globomantics.com
+
+6. Your application uses custom classes. Applications must transport Instantiated objects across the network to each other. Which kind of serialization format should you use?
+Ans: The development language's built-in format
+
+7. Which type of output encoding do you need for JavaScript to prevent cross-site scripting attacks?
+Ans: Except for alphanumeric characters, encode all characters with the \uXXXX unicode encoding format.
+
+8. Your application requires a stress test to determine if it can withstand denial-of-service attacks. Where would you perform the stress-test from?
+Ans: A machine in the same network
+
+9. Given the Open Web Application Security Project (OWASP) Proactive Controls, what is the most likely change you would need to make to an existing security policy?
+Ans: Emphasize the importance of security awareness.
+
+10. What is an example of a mitigation strategy for denial-of-service attacks?
+Ans: Dropping traffic without notification
+
+11. Why should you encrypt data at different stages?
+Ans: To protect it from unauthorized disclosure
+
+12. A company is concerned about both the integrity and the confidentiality of its data. What should the company implement and in which order?
+Ans Encrypting the data for confidentiality, then hashing the data for integrity.
+
+13. What does insufficient logging and monitoring mean?
+Ans: Failing to detect an intrusion on time
+
+14. Which mitigation strategy should you use to stop attackers and analyze an ongoing denial-of-service attack?
+Ans: Capture traffic in a sinkhole.
+
+15. Credential stuffing is the reuse of stolen or published valid username/password pairs on other sites. How can you defend against such automated attacks?
+Ans: Limit the number of authentication attempts per unique client.
+
+16. A server uses cookies as session identifiers and it is accessible over an unsecured, HTTP connection. You enable a secure, HTTPS connection and do not change any parts of the server itself. What happens?
+Ans. A browser sends cookies to the server over both a secure and an insecure channel.
+
+17. What is a cross-origin resource sharing (CORS) preflight request?
+Ans. A method to determine whether a request is safe to send
+
+18. You must prevent leaking of sensitive information about your message’s cleartext, based on its metadata such as the message length. How would you do so?
+Ans. By padding message payloads
+
+19. A server-side function encodes input using HTML entity encoding. Why does this function fail to prevent cross-site scripting for all HTML contexts?
+Ans. Because the function is not safe for all contexts
+
+
+20. A cross-origin resource sharing (CORS) request fails each time. A developer proposes to change the Origin header using JavaScript. Why is this solution incorrect?
+Ans You cannot manually change the Origin header.
+
+21. Which statement about XML external entities attacks is true?
+Ans. You can prevent attacks by using a local static document type definition (DTD) and disallowing any declared DTD included schema.
+
+22.You want to implement a cross-site PUT request using JavaScript. Under what conditions would a preflight request occur?
+Ans. It always occurs because the browser implements the preflight request for all HTTP/S requests. 
+
+23. A development team implements a system that recognizes returning customers. What is the first step of such a system?
+Ans. The identification of returning customers
+
+24. A development team is researching how to secure passwords. How should the team handle passwords before storing them?
+Ans. Use hashing and a salt.
+
+
+25. An attacker has a large number of breached user accounts. How can an attacker exploit a broken authentication vulnerability with this data?
+Ans. By trying breached accounts on another web application
