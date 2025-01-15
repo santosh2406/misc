@@ -1,0 +1,41 @@
+1. When would you expect to find the most dangerous time-of-check or time-of-use vulnerabilities?
+Ans: When a standard user works with a privileged application
+2. Your company creates a web application. It is now developing a dedicated mobile application. What is the best strategy to prevent sensitive data exposure?
+Ans: Encrypt all data in-transit and sensitive data at rest.
+3. Which symmetric encryption algorithm should you work with for general use?
+Ans:The Advanced Encryption Standard (AES)
+4. You want to implement input validation for usernames for a site with around one million users and growing. What is a valid approach?
+Ans: Use a regular expression.
+5. A company uses different vendors for its OAuth authorization server and resource server implementations. The development team discovers issues during implementation. What is the most obvious reason for these issues?
+Ans: Interoperability issues between the vendors' OAuth implementations
+6. What are the Open Web Application Security Project (OWASP) Proactive Controls?
+Ans:A list of security techniques for developers
+7. You want to move your organization from a static, point-in-time testing setup to a continuous security testing approach. How would you begin to do so?
+Ans: Take stock of routine manual security tests and automate them.
+8. A developer wants to prevent third-party website from automatically scraping information on a website. What can they use as input to mitigate such automated attacks?
+Ans: The fingerprint (user agent, format, header fields) of the request
+9: Your fully remote organization adopts the Microsoft Secure Development Lifecycle (SDL) methodology to improve the security of its applications. During your team's next sprint retrospective, the team’s overall view of the new methodology is negative. Why might this be the case?
+Ans: Microsoft’s SDL assumes that business activities occur in a linear order and this is often difficult for agile frameworks to reconcile with.
+10. What is an example of a mitigation strategy for an ongoing denial-of-service (DoS) attack?
+Ans: Dropping traffic without notification
+11. You want to validate that a specific third party is generating incoming data. Which mechanism would you use to ensure its authenticity?
+Ans: A keyed-hash message authentication code
+12. A single-page web application adds a checksum to each request it sends to a server when it passes validation checks. Where should you implement validation checks?
+Ans: At the server-side because that part receives all data
+13. What is time-of-check, time-of-use?
+Ans: The potential difference in state between when software checks a resource and when it uses the results of that check.
+14. What is an example of a preventive control?
+Ans: A rule in a web application firewall
+15. Your company has an overview of all third party-libraries in use. It uses a quarterly upgrade schedule. What should you do to mitigate the risk of vulnerabilities using these third-party components?
+Ans: Increase the upgrade schedule.
+16. What sets the Access-Control-Allow-Origin header on a request?
+Ans: The server
+17. What is the first step an application developer should take to prevent sensitive data exposure for an application?
+Ans: Classify the data the application processes, stores, or transmits.
+18. You want to prevent time-of-check to time-of-use vulnerabilities in your code. Which part of your code is especially important to look at?
+Ans: Any segment where the attacker can influence the state of the resource between check and use
+19. Why would you deploy a cross-domain policy file?
+Ans: To allow outside applications to interact with a web service
+20. A website is unresponsive. You suspect that a denial-of-service attack is responsible. Which is the logical next step?
+Ans: Throttle incoming requests.
+-----------------------------------------------------------------------------
