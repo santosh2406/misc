@@ -1,0 +1,32 @@
+1. When using a Time-based One-time Password (TOTP) as a second authentication factor with Spring Security, what additional information needs to be stored for each user?
+Ans: A shared secret
+2. What annotation can be used on a Spring controller method to enable Cross Origin HTTP requests?
+Ans: @CrossOrigin
+
+3. What do you need to have in the following Spring Security configuration method in order to register a user after a successful login with OAuth?
+protected void configure(HttpSecurity http) throws Exception {} 
+
+Ans. http.oauth2Login().successHandler(...);
+
+4. You are tasked with adding email verification to the user registration process of a Spring application, the service code for this is as follows: 
+public User registerUser(String name, String email, String password) {
+    User user = new User();    
+    user.setName(name);	`
+    user.setPassword(password);
+    user.setEmail(email);
+    user.setRoles(Arrays.asList("ROLE_USER"));
+    user.setEnabled(true);
+    return repository.save(user);       
+}
+What needs to be changed to support email verification?
+
+Ans: user.setEnabled(emailCheck.verify(email));
+
+
+5. A user notices the following message in the console when inspecting an external website:
+"Refused to display http://localhost:8080/login in a frame because it set 'X-Frame-Options' to 'deny'." 
+What attack has been prevented by the Spring Security default security headers?
+Ans: Clickjacking
+
+6. What is the default behavior of Spring Security in a traditional web application when trying to access a secured resource without logging in?
+Redirect to login URL
