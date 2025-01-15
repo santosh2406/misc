@@ -39,3 +39,22 @@ Ans: To allow outside applications to interact with a web service
 20. A website is unresponsive. You suspect that a denial-of-service attack is responsible. Which is the logical next step?
 Ans: Throttle incoming requests.
 -----------------------------------------------------------------------------
+
+1. Attackers pose a threat to an internet-facing application. If you cannot change the application itself, what is true about the threat or risk?
+Ans: You can lower the risk by minimizing the effect of a successful attack.
+2. What is a common mitigation technique to prevent using vulnerable components?
+Preparing a patch management process
+3. What is an example of a business logic validation rule?
+Testing whether a discount does not exceed a certain parameter
+4. You want to prevent user account enumeration. What is the first step?
+Identify all of the relevant attack surfaces.
+5.Which HTTP method can preflight requests use?
+OPTIONS
+6. A server uses cookies as session identifiers, and it is accessible over an unsecured, HTTP connection as well as over a secured HTTPS connection. You enable a secure, HTTPS connection and do not change any parts of the server itself. What happens?
+Ans: The browser only sends cookies to the server over a secure channel.
+7. You decrypt your private Secure Shell (SSH) key before logging on to a server that uses public key authentication. Why is this not multi-factor authentication?
+Ans: Because you only need the private key file
+8. Which HTML5 API might introduce a security risk?
+Ans: Web messaging
+
+
